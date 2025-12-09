@@ -2,15 +2,14 @@ import SwiftUI
 
 @main
 struct AirJediApp: App {
+    @StateObject private var appState = AppState()
+
     var body: some Scene {
-        MenuBarExtra("AirJedi", systemImage: "airplane") {
-            Text("AirJedi")
-                .padding()
-            Divider()
-            Button("Quit") {
-                NSApplication.shared.terminate(nil)
-            }
-            .keyboardShortcut("q")
+        MenuBarExtra {
+            AircraftListView(appState: appState)
+        } label: {
+            MenuBarIcon(aircraftCount: appState.nearbyCount)
         }
+        .menuBarExtraStyle(.window)
     }
 }
