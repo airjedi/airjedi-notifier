@@ -74,14 +74,22 @@ class SBSProvider: ADSBProvider, ObservableObject {
         guard let text = String(data: data, encoding: .utf8) else { return }
         buffer += text
 
-        // Process complete lines
-        while let lineEnd = buffer.firstIndex(of: "\n") {
-            let line = String(buffer[..<lineEnd])
-            buffer = String(buffer[buffer.index(after: lineEnd)...])
-
-            if !line.isEmpty {
-                parseSBSMessage(line)
+        // Process complete lines - split on newline character
+        let lines = buffer.components(separatedBy: "\n")
+        if lines.count > 1 {
+            // Process all complete lines (all but the last one)
+            for i in 0..<(lines.count - 1) {
+                var line = lines[i]
+                // Remove trailing \r if present (CRLF line endings)
+                if line.hasSuffix("\r") {
+                    line.removeLast()
+                }
+                if !line.isEmpty {
+                    parseSBSMessage(line)
+                }
             }
+            // Keep the last incomplete line in buffer
+            buffer = lines.last ?? ""
         }
     }
 

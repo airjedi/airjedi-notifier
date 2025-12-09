@@ -143,9 +143,11 @@ struct AircraftListView: View {
 
             Divider()
 
-            Button("Settings...") {
-                NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+            SettingsLink {
+                Text("Settings...")
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .buttonStyle(.plain)
             .keyboardShortcut(",", modifiers: .command)
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
