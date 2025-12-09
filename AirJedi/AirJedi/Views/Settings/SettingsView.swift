@@ -1,6 +1,7 @@
 import SwiftUI
 
 enum SettingsTab: String, CaseIterable, Identifiable {
+    case general = "General"
     case sources = "Sources"
     case location = "Location"
     case display = "Display"
@@ -10,6 +11,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
 
     var icon: String {
         switch self {
+        case .general: return "gearshape"
         case .sources: return "antenna.radiowaves.left.and.right"
         case .location: return "location"
         case .display: return "eye"
@@ -20,10 +22,16 @@ enum SettingsTab: String, CaseIterable, Identifiable {
 
 struct SettingsView: View {
     @ObservedObject var settings = SettingsManager.shared
-    @State private var selectedTab: SettingsTab = .sources
+    @State private var selectedTab: SettingsTab = .general
 
     var body: some View {
         TabView(selection: $selectedTab) {
+            GeneralSettingsView()
+                .tabItem {
+                    Label(SettingsTab.general.rawValue, systemImage: SettingsTab.general.icon)
+                }
+                .tag(SettingsTab.general)
+
             SourcesSettingsView(settings: settings)
                 .tabItem {
                     Label(SettingsTab.sources.rawValue, systemImage: SettingsTab.sources.icon)
