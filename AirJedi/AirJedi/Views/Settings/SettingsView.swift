@@ -42,28 +42,13 @@ struct SettingsView: View {
                 }
                 .tag(SettingsTab.display)
 
-            AlertsSettingsPlaceholder()
+            AlertsSettingsView()
                 .tabItem {
                     Label(SettingsTab.alerts.rawValue, systemImage: SettingsTab.alerts.icon)
                 }
                 .tag(SettingsTab.alerts)
         }
         .frame(width: 500, height: 400)
-    }
-}
-
-// Placeholder for alerts (implemented later)
-struct AlertsSettingsPlaceholder: View {
-    var body: some View {
-        VStack {
-            Image(systemName: "bell.slash")
-                .font(.system(size: 48))
-                .foregroundColor(.secondary)
-            Text("Alerts coming soon")
-                .font(.headline)
-                .foregroundColor(.secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
