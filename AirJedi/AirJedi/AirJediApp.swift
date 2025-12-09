@@ -10,7 +10,8 @@ struct AirJediApp: App {
         } label: {
             MenuBarIcon(
                 aircraftCount: appState.nearbyCount,
-                status: appState.connectionStatus
+                status: appState.connectionStatus,
+                hasAlert: appState.hasRecentAlert
             )
         }
         .menuBarExtraStyle(.window)

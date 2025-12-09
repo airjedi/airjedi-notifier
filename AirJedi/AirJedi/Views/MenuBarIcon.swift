@@ -3,6 +3,7 @@ import SwiftUI
 struct MenuBarIcon: View {
     let aircraftCount: Int
     let status: ProviderStatus
+    let hasAlert: Bool
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
@@ -10,7 +11,12 @@ struct MenuBarIcon: View {
                 .font(.system(size: 14))
                 .foregroundColor(iconColor)
 
-            if aircraftCount > 0 && status.isConnected {
+            if hasAlert {
+                Circle()
+                    .fill(Color.orange)
+                    .frame(width: 6, height: 6)
+                    .offset(x: 6, y: -4)
+            } else if aircraftCount > 0 && status.isConnected {
                 Text("\(aircraftCount)")
                     .font(.system(size: 8, weight: .bold))
                     .foregroundColor(.white)
@@ -33,6 +39,9 @@ struct MenuBarIcon: View {
     }
 
     private var iconColor: Color? {
+        if hasAlert {
+            return .orange
+        }
         switch status {
         case .error:
             return .red
@@ -46,10 +55,9 @@ struct MenuBarIcon: View {
 
 #Preview {
     HStack(spacing: 20) {
-        MenuBarIcon(aircraftCount: 0, status: .disconnected)
-        MenuBarIcon(aircraftCount: 3, status: .connected(aircraftCount: 3))
-        MenuBarIcon(aircraftCount: 0, status: .connecting)
-        MenuBarIcon(aircraftCount: 0, status: .error("Failed"))
+        MenuBarIcon(aircraftCount: 0, status: .disconnected, hasAlert: false)
+        MenuBarIcon(aircraftCount: 3, status: .connected(aircraftCount: 3), hasAlert: false)
+        MenuBarIcon(aircraftCount: 3, status: .connected(aircraftCount: 3), hasAlert: true)
     }
     .padding()
 }
