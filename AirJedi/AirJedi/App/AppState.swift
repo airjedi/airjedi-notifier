@@ -7,6 +7,8 @@ class AppState: ObservableObject {
 
     let aircraftService: AircraftService
     let providerManager: ProviderManager
+    let alertEngine: AlertEngine
+    let notificationManager: NotificationManager
 
     private let settings = SettingsManager.shared
     private var cancellables = Set<AnyCancellable>()
@@ -27,18 +29,38 @@ class AppState: ObservableObject {
         providerManager.combinedStatus
     }
 
+    var recentAlerts: [Alert] {
+        alertEngine.recentAlerts
+    }
+
+    var hasRecentAlert: Bool {
+        if let mostRecent = alertEngine.recentAlerts.first {
+            return Date().timeIntervalSince(mostRecent.timestamp) < 30
+        }
+        return false
+    }
+
     init() {
         self.aircraftService = AircraftService()
         self.providerManager = ProviderManager(aircraftService: aircraftService)
+        self.alertEngine = AlertEngine()
+        self.notificationManager = NotificationManager.shared
 
         // Forward changes from services to trigger view updates
         aircraftService.objectWillChange
             .sink { [weak self] _ in
                 self?.objectWillChange.send()
+                self?.evaluateAlerts()
             }
             .store(in: &cancellables)
 
         providerManager.objectWillChange
+            .sink { [weak self] _ in
+                self?.objectWillChange.send()
+            }
+            .store(in: &cancellables)
+
+        alertEngine.objectWillChange
             .sink { [weak self] _ in
                 self?.objectWillChange.send()
             }
@@ -49,6 +71,11 @@ class AppState: ObservableObject {
                 self?.objectWillChange.send()
             }
             .store(in: &cancellables)
+
+        // Request notification permission
+        Task {
+            await notificationManager.requestPermission()
+        }
 
         // Auto-start providers if sources are configured
         Task {
@@ -70,5 +97,14 @@ class AppState: ObservableObject {
         isConnecting = true
         await providerManager.restart()
         isConnecting = false
+    }
+
+    private func evaluateAlerts() {
+        let newAlerts = alertEngine.evaluate(aircraft: aircraftService.aircraft)
+        if !newAlerts.isEmpty {
+            Task {
+                await notificationManager.deliverMultiple(newAlerts)
+            }
+        }
     }
 }
