@@ -7,10 +7,16 @@ enum ProviderStatus: Equatable {
     case disconnected
     case connecting
     case connected(aircraftCount: Int)
+    case reconnecting(attempt: Int, maxAttempts: Int)
     case error(String)
 
     var isConnected: Bool {
         if case .connected = self { return true }
+        return false
+    }
+
+    var isReconnecting: Bool {
+        if case .reconnecting = self { return true }
         return false
     }
 
@@ -19,6 +25,7 @@ enum ProviderStatus: Equatable {
         case .disconnected: return "Disconnected"
         case .connecting: return "Connecting..."
         case .connected(let count): return "Connected (\(count) aircraft)"
+        case .reconnecting(let attempt, let max): return "Reconnecting (\(attempt)/\(max))..."
         case .error(let msg): return "Error: \(msg)"
         }
     }

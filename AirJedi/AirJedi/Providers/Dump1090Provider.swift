@@ -85,9 +85,22 @@ class Dump1090Provider: ADSBProvider, ObservableObject {
     private var pollingTask: Task<Void, Never>?
     private var isRunning = false
 
+    // Retry configuration
+    private let maxRetryAttempts = 10
+    private let baseRetryDelay: TimeInterval = 1.0
+    private let maxRetryDelay: TimeInterval = 60.0
+    private var consecutiveFailures = 0
+
     init(config: SourceConfig) {
         self.id = config.id
         self.config = config
+    }
+
+    private func calculateRetryDelay() -> TimeInterval {
+        let exponentialDelay = baseRetryDelay * pow(2.0, Double(consecutiveFailures - 1))
+        let clampedDelay = min(exponentialDelay, maxRetryDelay)
+        let jitter = clampedDelay * 0.2 * Double.random(in: -1...1)
+        return max(0.1, clampedDelay + jitter)
     }
 
     func connect() async {
@@ -116,39 +129,50 @@ class Dump1090Provider: ADSBProvider, ObservableObject {
 
     private func pollLoop() async {
         while isRunning && !Task.isCancelled {
-            await fetchAircraft()
+            let success = await fetchAircraft()
 
-            let refreshInterval = await MainActor.run {
-                SettingsManager.shared.refreshInterval
+            let sleepDuration: TimeInterval
+            if success {
+                consecutiveFailures = 0
+                let refreshInterval = await MainActor.run {
+                    SettingsManager.shared.refreshInterval
+                }
+                sleepDuration = refreshInterval
+            } else {
+                consecutiveFailures += 1
+
+                if consecutiveFailures > maxRetryAttempts {
+                    // Stop retrying, show final error
+                    await MainActor.run {
+                        status = .error("Connection failed after \(maxRetryAttempts) attempts")
+                    }
+                    return
+                }
+
+                sleepDuration = calculateRetryDelay()
+
+                await MainActor.run {
+                    status = .reconnecting(attempt: consecutiveFailures, maxAttempts: maxRetryAttempts)
+                }
             }
-            try? await Task.sleep(nanoseconds: UInt64(refreshInterval * 1_000_000_000))
+
+            try? await Task.sleep(nanoseconds: UInt64(sleepDuration * 1_000_000_000))
         }
     }
 
-    private func fetchAircraft() async {
+    @discardableResult
+    private func fetchAircraft() async -> Bool {
         let urlString = config.urlString
         guard let url = URL(string: urlString) else {
-            await MainActor.run {
-                status = .error("Invalid URL: \(urlString)")
-            }
-            return
+            return false
         }
 
         do {
             let (data, response) = try await URLSession.shared.data(from: url)
 
-            guard let httpResponse = response as? HTTPURLResponse else {
-                await MainActor.run {
-                    status = .error("Invalid response")
-                }
-                return
-            }
-
-            guard httpResponse.statusCode == 200 else {
-                await MainActor.run {
-                    status = .error("HTTP \(httpResponse.statusCode)")
-                }
-                return
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200 else {
+                return false
             }
 
             let decoder = JSONDecoder()
@@ -161,13 +185,13 @@ class Dump1090Provider: ADSBProvider, ObservableObject {
             }
 
             aircraftSubject.send(.snapshot(aircraft))
+            return true
 
         } catch is CancellationError {
             // Task was cancelled, ignore
+            return false
         } catch {
-            await MainActor.run {
-                status = .error(error.localizedDescription)
-            }
+            return false
         }
     }
 

@@ -99,6 +99,9 @@ class ProviderManager: ObservableObject {
         var hasError = false
         var hasConnecting = false
         var hasConnected = false
+        var hasReconnecting = false
+        var maxReconnectAttempt = 0
+        var maxReconnectMax = 0
 
         for provider in providers {
             switch provider.status {
@@ -107,6 +110,12 @@ class ProviderManager: ObservableObject {
                 totalAircraft += count
             case .connecting:
                 hasConnecting = true
+            case .reconnecting(let attempt, let max):
+                hasReconnecting = true
+                if attempt > maxReconnectAttempt {
+                    maxReconnectAttempt = attempt
+                    maxReconnectMax = max
+                }
             case .error:
                 hasError = true
             case .disconnected:
@@ -118,6 +127,8 @@ class ProviderManager: ObservableObject {
             combinedStatus = .connected(aircraftCount: totalAircraft)
         } else if hasConnecting {
             combinedStatus = .connecting
+        } else if hasReconnecting {
+            combinedStatus = .reconnecting(attempt: maxReconnectAttempt, maxAttempts: maxReconnectMax)
         } else if hasError {
             combinedStatus = .error("Connection failed")
         } else {

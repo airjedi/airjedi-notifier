@@ -65,6 +65,8 @@ class SBSProvider: ADSBProvider, ObservableObject {
             status = .connecting
         case .disconnected:
             status = .disconnected
+        case .reconnecting(let attempt, let maxAttempts, _):
+            status = .reconnecting(attempt: attempt, maxAttempts: maxAttempts)
         case .error(let msg):
             status = .error(msg)
         }

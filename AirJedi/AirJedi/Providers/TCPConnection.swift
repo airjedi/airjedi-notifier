@@ -2,13 +2,36 @@ import Foundation
 import Network
 import Combine
 
-/// Reusable TCP connection wrapper for streaming protocols
+/// Reusable TCP connection wrapper with automatic retry and exponential backoff
 class TCPConnection: ObservableObject {
     enum ConnectionState: Equatable {
         case disconnected
         case connecting
         case connected
+        case reconnecting(attempt: Int, maxAttempts: Int, nextRetryIn: TimeInterval)
         case error(String)
+    }
+
+    struct RetryConfig {
+        let maxAttempts: Int
+        let baseDelay: TimeInterval
+        let maxDelay: TimeInterval
+        let jitterFactor: Double
+
+        static let `default` = RetryConfig(
+            maxAttempts: 10,
+            baseDelay: 1.0,
+            maxDelay: 60.0,
+            jitterFactor: 0.2
+        )
+
+        /// Calculate delay for a given attempt using exponential backoff with jitter
+        func delay(forAttempt attempt: Int) -> TimeInterval {
+            let exponentialDelay = baseDelay * pow(2.0, Double(attempt - 1))
+            let clampedDelay = min(exponentialDelay, maxDelay)
+            let jitter = clampedDelay * jitterFactor * Double.random(in: -1...1)
+            return max(0.1, clampedDelay + jitter)
+        }
     }
 
     @Published private(set) var state: ConnectionState = .disconnected
@@ -18,15 +41,37 @@ class TCPConnection: ObservableObject {
     private let port: UInt16
     private var dataHandler: ((Data) -> Void)?
     private let queue = DispatchQueue(label: "TCPConnection")
+    private let retryConfig: RetryConfig
 
-    init(host: String, port: Int) {
+    private var retryAttempt = 0
+    private var retryTask: Task<Void, Never>?
+    private var isIntentionalDisconnect = false
+
+    init(host: String, port: Int, retryConfig: RetryConfig = .default) {
         self.host = host
         self.port = UInt16(port)
+        self.retryConfig = retryConfig
     }
 
     func connect(onData: @escaping (Data) -> Void) {
         self.dataHandler = onData
+        self.isIntentionalDisconnect = false
+        self.retryAttempt = 0
+        attemptConnection()
+    }
 
+    func disconnect() {
+        isIntentionalDisconnect = true
+        retryTask?.cancel()
+        retryTask = nil
+        connection?.cancel()
+        connection = nil
+        DispatchQueue.main.async {
+            self.state = .disconnected
+        }
+    }
+
+    private func attemptConnection() {
         let endpoint = NWEndpoint.hostPort(
             host: NWEndpoint.Host(host),
             port: NWEndpoint.Port(rawValue: port)!
@@ -34,6 +79,11 @@ class TCPConnection: ObservableObject {
 
         let parameters = NWParameters.tcp
         parameters.allowLocalEndpointReuse = true
+
+        // Set connection timeout
+        if let tcpOptions = parameters.defaultProtocolStack.transportProtocol as? NWProtocolTCP.Options {
+            tcpOptions.connectionTimeout = 10
+        }
 
         connection = NWConnection(to: endpoint, using: parameters)
 
@@ -43,35 +93,82 @@ class TCPConnection: ObservableObject {
             }
         }
 
-        connection?.start(queue: queue)
-    }
-
-    func disconnect() {
-        connection?.cancel()
-        connection = nil
         DispatchQueue.main.async {
-            self.state = .disconnected
+            if self.retryAttempt == 0 {
+                self.state = .connecting
+            }
         }
+
+        connection?.start(queue: queue)
     }
 
     private func handleStateUpdate(_ nwState: NWConnection.State) {
         switch nwState {
         case .ready:
+            retryAttempt = 0
             state = .connected
             startReceiving()
+
         case .waiting(let error):
-            state = .error("Waiting: \(error.localizedDescription)")
+            // Network path not available - schedule retry
+            handleConnectionFailure(error: "Network unavailable: \(error.localizedDescription)")
+
         case .failed(let error):
-            state = .error(error.localizedDescription)
-            disconnect()
+            handleConnectionFailure(error: error.localizedDescription)
+
         case .cancelled:
-            state = .disconnected
+            if !isIntentionalDisconnect {
+                handleConnectionFailure(error: "Connection cancelled")
+            } else {
+                state = .disconnected
+            }
+
         case .preparing:
-            state = .connecting
+            if retryAttempt == 0 {
+                state = .connecting
+            }
+
         case .setup:
-            state = .connecting
+            break
+
         @unknown default:
             break
+        }
+    }
+
+    private func handleConnectionFailure(error: String) {
+        guard !isIntentionalDisconnect else {
+            state = .disconnected
+            return
+        }
+
+        connection?.cancel()
+        connection = nil
+
+        retryAttempt += 1
+
+        if retryAttempt > retryConfig.maxAttempts {
+            state = .error("Connection failed after \(retryConfig.maxAttempts) attempts: \(error)")
+            return
+        }
+
+        let delay = retryConfig.delay(forAttempt: retryAttempt)
+        state = .reconnecting(
+            attempt: retryAttempt,
+            maxAttempts: retryConfig.maxAttempts,
+            nextRetryIn: delay
+        )
+
+        retryTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+
+            guard let self = self, !Task.isCancelled, !self.isIntentionalDisconnect else {
+                return
+            }
+
+            await MainActor.run {
+                self.attemptConnection()
+            }
         }
     }
 
@@ -83,13 +180,15 @@ class TCPConnection: ObservableObject {
 
             if let error = error {
                 DispatchQueue.main.async {
-                    self?.state = .error(error.localizedDescription)
+                    self?.handleConnectionFailure(error: error.localizedDescription)
                 }
                 return
             }
 
             if isComplete {
-                self?.disconnect()
+                DispatchQueue.main.async {
+                    self?.handleConnectionFailure(error: "Connection closed by server")
+                }
                 return
             }
 

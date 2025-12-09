@@ -65,6 +65,7 @@ struct AircraftListView: View {
         switch appState.connectionStatus {
         case .connected: return .green
         case .connecting: return .yellow
+        case .reconnecting: return .orange
         case .error: return .red
         case .disconnected: return .gray
         }
