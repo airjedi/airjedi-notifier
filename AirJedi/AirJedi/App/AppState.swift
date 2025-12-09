@@ -1,23 +1,34 @@
 import SwiftUI
+import Combine
 
 @MainActor
 class AppState: ObservableObject {
     @Published var aircraft: [Aircraft] = []
-    @Published var referenceLocation: Coordinate?
+
+    private let settings = SettingsManager.shared
+    private var cancellables = Set<AnyCancellable>()
 
     var nearbyCount: Int {
         aircraft.count
     }
 
+    var referenceLocation: Coordinate {
+        settings.referenceLocation
+    }
+
     init() {
         // Load placeholder data for development
         loadPlaceholderData()
+
+        // Observe settings changes
+        settings.objectWillChange
+            .sink { [weak self] _ in
+                self?.objectWillChange.send()
+            }
+            .store(in: &cancellables)
     }
 
     private func loadPlaceholderData() {
-        // Reference location: San Francisco
-        referenceLocation = Coordinate(latitude: 37.7749, longitude: -122.4194)
-
         aircraft = [
             Aircraft(
                 icaoHex: "A12345",

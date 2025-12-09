@@ -4,9 +4,7 @@ struct AircraftListView: View {
     @ObservedObject var appState: AppState
 
     private var sortedAircraft: [Aircraft] {
-        guard let ref = appState.referenceLocation else {
-            return appState.aircraft
-        }
+        let ref = appState.referenceLocation
         return appState.aircraft.sorted { a, b in
             let distA = a.distance(from: ref) ?? .infinity
             let distB = b.distance(from: ref) ?? .infinity
@@ -43,6 +41,15 @@ struct AircraftListView: View {
                     .foregroundColor(.secondary)
                 Spacer()
             }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+
+            Divider()
+
+            Button("Settings...") {
+                NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+            }
+            .keyboardShortcut(",", modifiers: .command)
             .padding(.horizontal, 8)
             .padding(.vertical, 6)
 
