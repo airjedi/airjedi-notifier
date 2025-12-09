@@ -16,5 +16,7 @@
     <string>0.1.0</string>
     <key>LSMinimumSystemVersion</key>
     <string>13.0</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>AirJedi uses your location to calculate distance to nearby aircraft.</string>
 </dict>
 </plist>
