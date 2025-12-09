@@ -53,8 +53,7 @@ enum ProviderFactory {
         case .dump1090:
             return Dump1090Provider(config: config)
         case .beast:
-            // TODO: Implement BeastProvider
-            fatalError("Beast provider not yet implemented")
+            return BeastProvider(config: config)
         case .sbs:
             return SBSProvider(config: config)
         }
