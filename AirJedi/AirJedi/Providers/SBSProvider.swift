@@ -162,8 +162,10 @@ class SBSProvider: ADSBProvider, ObservableObject {
         aircraft.lastSeen = Date()
         aircraftCache[icaoHex] = aircraft
 
-        DispatchQueue.main.async {
-            self.status = .connected(aircraftCount: self.aircraftCache.count)
+        let count = aircraftCache.count
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.status = .connected(aircraftCount: count)
         }
 
         aircraftSubject.send(.updated(aircraft))
