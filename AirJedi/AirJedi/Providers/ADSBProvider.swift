@@ -56,8 +56,7 @@ enum ProviderFactory {
             // TODO: Implement BeastProvider
             fatalError("Beast provider not yet implemented")
         case .sbs:
-            // TODO: Implement SBSProvider
-            fatalError("SBS provider not yet implemented")
+            return SBSProvider(config: config)
         }
     }
 }
