@@ -2,6 +2,7 @@ import SwiftUI
 
 struct AircraftListView: View {
     @ObservedObject var appState: AppState
+    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -21,11 +22,6 @@ struct AircraftListView: View {
 
             // Footer
             footer
-
-            Divider()
-
-            // Menu items
-            menuItems
         }
         .frame(width: 320)
     }
@@ -56,6 +52,49 @@ struct AircraftListView: View {
                 .font(.system(size: 11))
                 .buttonStyle(.borderless)
             }
+
+            Button {
+                openSettings()
+                DispatchQueue.main.async {
+                    NSApp.activate(ignoringOtherApps: true)
+                    if let settingsWindow = NSApp.windows.first(where: { $0.title.contains("Settings") || $0.identifier?.rawValue.contains("settings") == true }) {
+                        settingsWindow.makeKeyAndOrderFront(nil)
+                    } else {
+                        NSApp.windows.last?.makeKeyAndOrderFront(nil)
+                    }
+                }
+            } label: {
+                Image(systemName: "gearshape")
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+            }
+            .buttonStyle(.borderless)
+            .keyboardShortcut(",", modifiers: .command)
+            .help("Settings")
+
+            Button {
+                Task {
+                    await appState.restartProviders()
+                }
+            } label: {
+                Image(systemName: "arrow.clockwise")
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+            }
+            .buttonStyle(.borderless)
+            .keyboardShortcut("r")
+            .help("Refresh")
+
+            Button {
+                NSApplication.shared.terminate(nil)
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(.red)
+            }
+            .buttonStyle(.borderless)
+            .keyboardShortcut("q")
+            .help("Quit AirJedi")
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
@@ -95,18 +134,26 @@ struct AircraftListView: View {
 
     // MARK: - Aircraft List
 
-    private var aircraftList: some View {
-        ForEach(appState.aircraft) { aircraft in
-            AircraftRowView(
-                aircraft: aircraft,
-                referenceLocation: appState.referenceLocation
-            )
+    /// Maximum height for the aircraft list scroll area (approximately 15 rows)
+    private let maxListHeight: CGFloat = 600
 
-            if aircraft.id != appState.aircraft.last?.id {
-                Divider()
-                    .padding(.horizontal, 8)
+    private var aircraftList: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                ForEach(appState.aircraft) { aircraft in
+                    AircraftRowView(
+                        aircraft: aircraft,
+                        referenceLocation: appState.referenceLocation
+                    )
+
+                    if aircraft.id != appState.aircraft.last?.id {
+                        Divider()
+                            .padding(.horizontal, 8)
+                    }
+                }
             }
         }
+        .frame(maxHeight: maxListHeight)
     }
 
     // MARK: - Footer
@@ -129,40 +176,6 @@ struct AircraftListView: View {
         .padding(.vertical, 6)
     }
 
-    // MARK: - Menu Items
-
-    private var menuItems: some View {
-        VStack(spacing: 0) {
-            Button("Refresh") {
-                Task {
-                    await appState.restartProviders()
-                }
-            }
-            .keyboardShortcut("r")
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-
-            Divider()
-
-            SettingsLink {
-                Text("Settings...")
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .buttonStyle(.plain)
-            .keyboardShortcut(",", modifiers: .command)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-
-            Divider()
-
-            Button("Quit AirJedi") {
-                NSApplication.shared.terminate(nil)
-            }
-            .keyboardShortcut("q")
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-        }
-    }
 }
 
 #Preview {
