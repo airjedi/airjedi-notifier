@@ -139,7 +139,8 @@ class AlertEngine: ObservableObject {
             title: "Aircraft Nearby",
             body: "\(callsign) at \(String(format: "%.1f", distance))nm, \(altText)",
             priority: rule.priority,
-            sound: rule.sound
+            sound: rule.sound,
+            sendNotification: rule.sendNotification
         )
     }
 
@@ -183,7 +184,8 @@ class AlertEngine: ObservableObject {
             title: "Watchlist Aircraft",
             body: "\(callsign) - \(matchReason)",
             priority: rule.priority,
-            sound: rule.sound
+            sound: rule.sound,
+            sendNotification: rule.sendNotification
         )
     }
 
@@ -216,7 +218,8 @@ class AlertEngine: ObservableObject {
             title: "⚠️ \(squawkMeaning)",
             body: "\(callsign) squawking \(squawk)",
             priority: rule.priority,
-            sound: rule.sound
+            sound: rule.sound,
+            sendNotification: rule.sendNotification
         )
     }
 
@@ -249,7 +252,8 @@ class AlertEngine: ObservableObject {
             title: "Aircraft Type Match",
             body: "\(callsign) - \(typeCode)",
             priority: rule.priority,
-            sound: rule.sound
+            sound: rule.sound,
+            sendNotification: rule.sendNotification
         )
     }
 

@@ -3,14 +3,27 @@ import UserNotifications
 import AppKit
 
 @MainActor
-class NotificationManager: ObservableObject {
+class NotificationManager: NSObject, ObservableObject, UNUserNotificationCenterDelegate {
     static let shared = NotificationManager()
 
     @Published private(set) var isAuthorized = false
     @Published var alertsEnabled = true
 
-    private init() {
+    private override init() {
+        super.init()
+        UNUserNotificationCenter.current().delegate = self
         checkAuthorization()
+    }
+
+    // MARK: - UNUserNotificationCenterDelegate
+
+    /// Show notifications even when app is in foreground (menu bar apps need this)
+    nonisolated func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        completionHandler([.banner, .sound, .badge])
     }
 
     // MARK: - Authorization
@@ -43,11 +56,11 @@ class NotificationManager: ObservableObject {
     func deliver(_ alert: Alert) async {
         guard alertsEnabled else { return }
 
-        // Play sound
+        // Play in-app sound
         playSound(alert.sound)
 
-        // Send notification if authorized
-        if isAuthorized {
+        // Send desktop notification if authorized and enabled for this alert
+        if isAuthorized && alert.sendNotification {
             await sendNotification(alert)
         }
     }
@@ -64,12 +77,10 @@ class NotificationManager: ObservableObject {
         content.body = alert.body
         content.categoryIdentifier = "AIRCRAFT_ALERT"
 
-        // Set sound based on priority
+        // Set interruption level based on priority
+        // Note: .critical requires a special entitlement, so we use .timeSensitive as max
         switch alert.priority {
-        case .critical:
-            content.sound = .defaultCritical
-            content.interruptionLevel = .critical
-        case .high:
+        case .critical, .high:
             content.sound = .default
             content.interruptionLevel = .timeSensitive
         case .normal:

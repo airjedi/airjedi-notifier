@@ -60,6 +60,7 @@ struct Alert: Identifiable {
     let body: String
     let priority: AlertPriority
     let sound: AlertSound
+    let sendNotification: Bool
     let timestamp: Date
 
     init(
@@ -69,7 +70,8 @@ struct Alert: Identifiable {
         title: String,
         body: String,
         priority: AlertPriority,
-        sound: AlertSound
+        sound: AlertSound,
+        sendNotification: Bool = true
     ) {
         self.id = UUID()
         self.aircraft = aircraft
@@ -79,6 +81,7 @@ struct Alert: Identifiable {
         self.body = body
         self.priority = priority
         self.sound = sound
+        self.sendNotification = sendNotification
         self.timestamp = Date()
     }
 }
@@ -121,6 +124,7 @@ struct AlertRuleConfig: Identifiable, Codable, Equatable {
     var isEnabled: Bool
     var priority: AlertPriority
     var sound: AlertSound
+    var sendNotification: Bool
 
     // Proximity settings
     var maxDistanceNm: Double?
@@ -145,7 +149,8 @@ struct AlertRuleConfig: Identifiable, Codable, Equatable {
         type: AlertRuleType,
         isEnabled: Bool = true,
         priority: AlertPriority = .normal,
-        sound: AlertSound = .standard
+        sound: AlertSound = .standard,
+        sendNotification: Bool = true
     ) {
         self.id = id
         self.name = name
@@ -153,6 +158,28 @@ struct AlertRuleConfig: Identifiable, Codable, Equatable {
         self.isEnabled = isEnabled
         self.priority = priority
         self.sound = sound
+        self.sendNotification = sendNotification
+    }
+
+    // Custom decoder to handle missing sendNotification key for existing saved rules
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        type = try container.decode(AlertRuleType.self, forKey: .type)
+        isEnabled = try container.decode(Bool.self, forKey: .isEnabled)
+        priority = try container.decode(AlertPriority.self, forKey: .priority)
+        sound = try container.decode(AlertSound.self, forKey: .sound)
+        sendNotification = try container.decodeIfPresent(Bool.self, forKey: .sendNotification) ?? true
+        maxDistanceNm = try container.decodeIfPresent(Double.self, forKey: .maxDistanceNm)
+        maxAltitudeFeet = try container.decodeIfPresent(Int.self, forKey: .maxAltitudeFeet)
+        minAltitudeFeet = try container.decodeIfPresent(Int.self, forKey: .minAltitudeFeet)
+        watchCallsigns = try container.decodeIfPresent([String].self, forKey: .watchCallsigns)
+        watchRegistrations = try container.decodeIfPresent([String].self, forKey: .watchRegistrations)
+        watchIcaoHex = try container.decodeIfPresent([String].self, forKey: .watchIcaoHex)
+        squawkCodes = try container.decodeIfPresent([String].self, forKey: .squawkCodes)
+        typeCategories = try container.decodeIfPresent([String].self, forKey: .typeCategories)
+        typeCodes = try container.decodeIfPresent([String].self, forKey: .typeCodes)
     }
 
     static func defaultProximityRule() -> AlertRuleConfig {

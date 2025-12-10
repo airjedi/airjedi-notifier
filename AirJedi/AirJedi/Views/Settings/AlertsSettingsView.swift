@@ -129,6 +129,7 @@ struct AlertRuleDetailView: View {
                         Text(sound.displayName).tag(sound)
                     }
                 }
+                Toggle("Send Desktop Notification", isOn: $editedRule.sendNotification)
             }
 
             ruleSpecificSettings
