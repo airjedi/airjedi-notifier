@@ -7,16 +7,82 @@ DerivedData/
 xcuserdata/
 *.xcodeproj
 
+# Xcode - more specific patterns
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
 # Swift Package Manager
 .build/
 Packages/
 Package.resolved
+.swiftpm/
+
+# CocoaPods (if ever used)
+Pods/
+Podfile.lock
+
+# Carthage (if ever used)
+Carthage/Build/
+Carthage/Checkouts/
 
 # macOS
 .DS_Store
 .AppleDouble
 .LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# IDEs
+.idea/
+*.swp
+*.swo
+*~
+.vscode/
 
 # Temporary files
 tmp/
 *.log
+
+# Archives and distribution
+*.app
+*.ipa
+*.xcarchive
+
+# Code coverage
+*.gcno
+*.gcda
+*.profdata
+*.profraw
+
+# Code signing
+*.mobileprovision
+*.provisionprofile
+
+# Playgrounds
+timeline.xctimeline
+playground.xcworkspace
+
+# fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# Environment and secrets
+.env
+.env.*
+*.pem
+*.p12
+*.key
