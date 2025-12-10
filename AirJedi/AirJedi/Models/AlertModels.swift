@@ -57,6 +57,7 @@ struct Alert: Identifiable {
     let ruleId: UUID
     let ruleName: String
     let title: String
+    let subtitle: String?
     let body: String
     let priority: AlertPriority
     let sound: AlertSound
@@ -68,6 +69,7 @@ struct Alert: Identifiable {
         ruleId: UUID,
         ruleName: String,
         title: String,
+        subtitle: String? = nil,
         body: String,
         priority: AlertPriority,
         sound: AlertSound,
@@ -78,6 +80,7 @@ struct Alert: Identifiable {
         self.ruleId = ruleId
         self.ruleName = ruleName
         self.title = title
+        self.subtitle = subtitle
         self.body = body
         self.priority = priority
         self.sound = sound

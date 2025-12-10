@@ -9,10 +9,34 @@ class NotificationManager: NSObject, ObservableObject, UNUserNotificationCenterD
     @Published private(set) var isAuthorized = false
     @Published var alertsEnabled = true
 
+    // Action identifiers
+    static let showInListActionIdentifier = "SHOW_IN_LIST"
+    static let aircraftAlertCategoryIdentifier = "AIRCRAFT_ALERT"
+
     private override init() {
         super.init()
         UNUserNotificationCenter.current().delegate = self
+        registerNotificationCategories()
         checkAuthorization()
+    }
+
+    // MARK: - Category Registration
+
+    private func registerNotificationCategories() {
+        let showInListAction = UNNotificationAction(
+            identifier: Self.showInListActionIdentifier,
+            title: "Show in List",
+            options: [.foreground]
+        )
+
+        let aircraftCategory = UNNotificationCategory(
+            identifier: Self.aircraftAlertCategoryIdentifier,
+            actions: [showInListAction],
+            intentIdentifiers: [],
+            options: [.customDismissAction]
+        )
+
+        UNUserNotificationCenter.current().setNotificationCategories([aircraftCategory])
     }
 
     // MARK: - UNUserNotificationCenterDelegate
@@ -24,6 +48,25 @@ class NotificationManager: NSObject, ObservableObject, UNUserNotificationCenterD
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
         completionHandler([.banner, .sound, .badge])
+    }
+
+    /// Handle notification action responses
+    nonisolated func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        switch response.actionIdentifier {
+        case Self.showInListActionIdentifier, UNNotificationDefaultActionIdentifier:
+            // User tapped "Show in List" or the notification itself
+            // Post notification to open menu bar popup
+            Task { @MainActor in
+                NotificationCenter.default.post(name: .showAircraftList, object: nil)
+            }
+        default:
+            break
+        }
+        completionHandler()
     }
 
     // MARK: - Authorization
@@ -74,8 +117,11 @@ class NotificationManager: NSObject, ObservableObject, UNUserNotificationCenterD
     private func sendNotification(_ alert: Alert) async {
         let content = UNMutableNotificationContent()
         content.title = alert.title
+        if let subtitle = alert.subtitle {
+            content.subtitle = subtitle
+        }
         content.body = alert.body
-        content.categoryIdentifier = "AIRCRAFT_ALERT"
+        content.categoryIdentifier = Self.aircraftAlertCategoryIdentifier
 
         // Set interruption level based on priority
         // Note: .critical requires a special entitlement, so we use .timeSensitive as max
@@ -111,4 +157,10 @@ class NotificationManager: NSObject, ObservableObject, UNUserNotificationCenterD
             soundURL.play()
         }
     }
+}
+
+// MARK: - Notification Names
+
+extension Notification.Name {
+    static let showAircraftList = Notification.Name("showAircraftList")
 }

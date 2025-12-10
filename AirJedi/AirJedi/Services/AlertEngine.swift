@@ -130,14 +130,15 @@ class AlertEngine: ObservableObject {
         }
 
         let callsign = aircraft.callsign ?? aircraft.icaoHex
-        let altText = aircraft.altitudeFeet.map { "\($0)ft" } ?? "unknown alt"
+        let detailBody = aircraft.detailSummary(referenceLocation: settings.referenceLocation)
 
         return Alert(
             aircraft: aircraft,
             ruleId: rule.id,
             ruleName: rule.name,
-            title: "Aircraft Nearby",
-            body: "\(callsign) at \(String(format: "%.1f", distance))nm, \(altText)",
+            title: "Aircraft Nearby: \(callsign)",
+            subtitle: aircraft.notificationSubtitle,
+            body: detailBody,
             priority: rule.priority,
             sound: rule.sound,
             sendNotification: rule.sendNotification
@@ -176,13 +177,15 @@ class AlertEngine: ObservableObject {
         }
 
         let callsign = aircraft.callsign ?? aircraft.icaoHex
+        let detailBody = "\(matchReason)\n" + aircraft.detailSummary(referenceLocation: settings.referenceLocation)
 
         return Alert(
             aircraft: aircraft,
             ruleId: rule.id,
             ruleName: rule.name,
-            title: "Watchlist Aircraft",
-            body: "\(callsign) - \(matchReason)",
+            title: "Watchlist: \(callsign)",
+            subtitle: aircraft.notificationSubtitle,
+            body: detailBody,
             priority: rule.priority,
             sound: rule.sound,
             sendNotification: rule.sendNotification
@@ -210,13 +213,15 @@ class AlertEngine: ObservableObject {
         case "7700": squawkMeaning = "EMERGENCY"
         default: squawkMeaning = "Code \(squawk)"
         }
+        let detailBody = aircraft.detailSummary(referenceLocation: settings.referenceLocation)
 
         return Alert(
             aircraft: aircraft,
             ruleId: rule.id,
             ruleName: rule.name,
-            title: "⚠️ \(squawkMeaning)",
-            body: "\(callsign) squawking \(squawk)",
+            title: "⚠️ \(squawkMeaning): \(callsign)",
+            subtitle: aircraft.notificationSubtitle,
+            body: detailBody,
             priority: rule.priority,
             sound: rule.sound,
             sendNotification: rule.sendNotification
@@ -244,13 +249,15 @@ class AlertEngine: ObservableObject {
 
         let callsign = aircraft.callsign ?? aircraft.icaoHex
         let typeCode = aircraft.aircraftTypeCode ?? "Unknown"
+        let detailBody = aircraft.detailSummary(referenceLocation: settings.referenceLocation)
 
         return Alert(
             aircraft: aircraft,
             ruleId: rule.id,
             ruleName: rule.name,
-            title: "Aircraft Type Match",
-            body: "\(callsign) - \(typeCode)",
+            title: "\(typeCode): \(callsign)",
+            subtitle: aircraft.notificationSubtitle,
+            body: detailBody,
             priority: rule.priority,
             sound: rule.sound,
             sendNotification: rule.sendNotification

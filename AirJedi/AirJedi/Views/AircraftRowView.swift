@@ -4,6 +4,8 @@ struct AircraftRowView: View {
     let aircraft: Aircraft
     let referenceLocation: Coordinate?
 
+    @State private var isHovering = false
+
     private var distanceText: String {
         guard let ref = referenceLocation,
               let dist = aircraft.distance(from: ref) else {
@@ -67,6 +69,14 @@ struct AircraftRowView: View {
         }
         .padding(.vertical, 4)
         .padding(.horizontal, 8)
+        .background(isHovering ? Color.accentColor.opacity(0.1) : Color.clear)
+        .cornerRadius(6)
+        .onHover { hovering in
+            isHovering = hovering
+        }
+        .popover(isPresented: $isHovering, arrowEdge: .trailing) {
+            AircraftDetailView(aircraft: aircraft, referenceLocation: referenceLocation)
+        }
     }
 }
 

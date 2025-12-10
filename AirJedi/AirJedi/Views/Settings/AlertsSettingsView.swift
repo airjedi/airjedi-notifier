@@ -170,6 +170,7 @@ struct AlertRuleDetailView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
                 TextField("e.g., UAL, DAL, N123AB", text: watchlistCallsignsBinding)
+                    .textFieldStyle(.roundedBorder)
             }
 
         case .squawk:
@@ -188,6 +189,7 @@ struct AlertRuleDetailView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
                 TextField("e.g., C17, F16, B2", text: typeCodesBinding)
+                    .textFieldStyle(.roundedBorder)
             }
         }
     }
