@@ -30,38 +30,41 @@ struct AlertsSettingsView: View {
                 }
                 .padding(8)
             }
-            .frame(minWidth: 200, maxWidth: 250)
+            .frame(width: 150)
 
             // Detail view
-            if let ruleId = selectedRuleId,
-               let rule = alertEngine.alertRules.first(where: { $0.id == ruleId }) {
-                AlertRuleDetailView(rule: rule, alertEngine: alertEngine)
-            } else {
-                VStack(spacing: 12) {
-                    if !notificationManager.isAuthorized {
-                        VStack(spacing: 8) {
-                            Image(systemName: "bell.slash")
-                                .font(.system(size: 32))
-                                .foregroundColor(.orange)
-                            Text("Notifications Disabled")
-                                .font(.headline)
-                            Text("Enable in System Settings to receive alerts")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Button("Open System Settings") {
-                                NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.notifications")!)
+            Group {
+                if let ruleId = selectedRuleId,
+                   let rule = alertEngine.alertRules.first(where: { $0.id == ruleId }) {
+                    AlertRuleDetailView(rule: rule, alertEngine: alertEngine)
+                } else {
+                    VStack(spacing: 12) {
+                        if !notificationManager.isAuthorized {
+                            VStack(spacing: 8) {
+                                Image(systemName: "bell.slash")
+                                    .font(.system(size: 32))
+                                    .foregroundColor(.orange)
+                                Text("Notifications Disabled")
+                                    .font(.headline)
+                                Text("Enable in System Settings to receive alerts")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Button("Open System Settings") {
+                                    NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.notifications")!)
+                                }
                             }
+                        } else {
+                            Image(systemName: "bell.badge")
+                                .font(.system(size: 48))
+                                .foregroundColor(.secondary)
+                            Text("Select a rule or add a new one")
+                                .foregroundColor(.secondary)
                         }
-                    } else {
-                        Image(systemName: "bell.badge")
-                            .font(.system(size: 48))
-                            .foregroundColor(.secondary)
-                        Text("Select a rule or add a new one")
-                            .foregroundColor(.secondary)
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+            .layoutPriority(1)
         }
         .sheet(isPresented: $showingAddSheet) {
             AddAlertRuleSheet(alertEngine: alertEngine, isPresented: $showingAddSheet)

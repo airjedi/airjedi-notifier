@@ -34,22 +34,25 @@ struct SourcesSettingsView: View {
                 }
                 .padding(8)
             }
-            .frame(minWidth: 200, maxWidth: 250)
+            .frame(width: 150)
 
             // Detail view
-            if let sourceId = selectedSourceId,
-               let source = settings.sources.first(where: { $0.id == sourceId }) {
-                SourceDetailView(source: source, settings: settings)
-            } else {
-                VStack {
-                    Image(systemName: "antenna.radiowaves.left.and.right")
-                        .font(.system(size: 48))
-                        .foregroundColor(.secondary)
-                    Text("Select a source or add a new one")
-                        .foregroundColor(.secondary)
+            Group {
+                if let sourceId = selectedSourceId,
+                   let source = settings.sources.first(where: { $0.id == sourceId }) {
+                    SourceDetailView(source: source, settings: settings)
+                } else {
+                    VStack {
+                        Image(systemName: "antenna.radiowaves.left.and.right")
+                            .font(.system(size: 48))
+                            .foregroundColor(.secondary)
+                        Text("Select a source or add a new one")
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+            .layoutPriority(1)
         }
         .sheet(isPresented: $showingAddSheet) {
             AddSourceSheet(settings: settings, isPresented: $showingAddSheet)
