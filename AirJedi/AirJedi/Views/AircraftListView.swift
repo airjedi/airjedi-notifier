@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct AircraftListView: View {
-    @ObservedObject var appState: AppState
+    var appState: AppState
     @ObservedObject private var settings = SettingsManager.shared
     @Environment(\.openSettings) private var openSettings
 

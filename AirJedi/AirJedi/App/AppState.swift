@@ -1,10 +1,15 @@
 import SwiftUI
 import Combine
+import Observation
 
+@Observable
 @MainActor
-class AppState: ObservableObject {
-    @Published var isConnecting = false
-    @Published private(set) var nearbyCount: Int = 0
+class AppState {
+    // Stored properties for menu bar label (tracked by @Observable)
+    var isConnecting = false
+    var nearbyCount: Int = 0
+    var connectionStatus: ProviderStatus = .disconnected
+    var hasRecentAlert: Bool = false
 
     let aircraftService: AircraftService
     let providerManager: ProviderManager
@@ -12,30 +17,18 @@ class AppState: ObservableObject {
     let notificationManager: NotificationManager
 
     private let settings = SettingsManager.shared
-    private var cancellables = Set<AnyCancellable>()
+    @ObservationIgnored private var cancellables = Set<AnyCancellable>()
 
     var aircraft: [Aircraft] {
         aircraftService.aircraft
     }
 
-
     var referenceLocation: Coordinate {
         settings.referenceLocation
     }
 
-    var connectionStatus: ProviderStatus {
-        providerManager.combinedStatus
-    }
-
     var recentAlerts: [Alert] {
         alertEngine.recentAlerts
-    }
-
-    var hasRecentAlert: Bool {
-        if let mostRecent = alertEngine.recentAlerts.first {
-            return Date().timeIntervalSince(mostRecent.timestamp) < 30
-        }
-        return false
     }
 
     init() {
@@ -44,39 +37,30 @@ class AppState: ObservableObject {
         self.alertEngine = AlertEngine()
         self.notificationManager = NotificationManager.shared
 
-        // Forward changes from services to trigger view updates
-        aircraftService.objectWillChange
-            .sink { [weak self] _ in
-                self?.objectWillChange.send()
+        // Sync stored properties from services for menu bar updates
+        aircraftService.$aircraft
+            .receive(on: RunLoop.main)
+            .sink { [weak self] aircraft in
+                self?.nearbyCount = aircraft.count
                 self?.evaluateAlerts()
             }
             .store(in: &cancellables)
 
-        // Subscribe to aircraft changes to update count (uses $aircraft for post-change value)
-        aircraftService.$aircraft
-            .map { $0.count }
-            .removeDuplicates()
+        providerManager.$combinedStatus
             .receive(on: RunLoop.main)
-            .sink { [weak self] count in
-                self?.nearbyCount = count
+            .sink { [weak self] status in
+                self?.connectionStatus = status
             }
             .store(in: &cancellables)
 
-        providerManager.objectWillChange
-            .sink { [weak self] _ in
-                self?.objectWillChange.send()
-            }
-            .store(in: &cancellables)
-
-        alertEngine.objectWillChange
-            .sink { [weak self] _ in
-                self?.objectWillChange.send()
-            }
-            .store(in: &cancellables)
-
-        settings.objectWillChange
-            .sink { [weak self] _ in
-                self?.objectWillChange.send()
+        alertEngine.$recentAlerts
+            .receive(on: RunLoop.main)
+            .sink { [weak self] alerts in
+                if let mostRecent = alerts.first {
+                    self?.hasRecentAlert = Date().timeIntervalSince(mostRecent.timestamp) < 30
+                } else {
+                    self?.hasRecentAlert = false
+                }
             }
             .store(in: &cancellables)
 
