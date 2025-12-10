@@ -2,6 +2,7 @@ import SwiftUI
 
 struct AircraftListView: View {
     @ObservedObject var appState: AppState
+    @ObservedObject private var settings = SettingsManager.shared
     @Environment(\.openSettings) private var openSettings
 
     var body: some View {
@@ -52,6 +53,17 @@ struct AircraftListView: View {
                 .font(.system(size: 11))
                 .buttonStyle(.borderless)
             }
+
+            Button {
+                settings.soundsMuted.toggle()
+            } label: {
+                Image(systemName: settings.soundsMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                    .font(.system(size: 12))
+                    .foregroundColor(settings.soundsMuted ? .orange : .secondary)
+            }
+            .buttonStyle(.borderless)
+            .keyboardShortcut("m")
+            .help(settings.soundsMuted ? "Unmute Sounds" : "Mute Sounds")
 
             Button {
                 openSettings()

@@ -68,6 +68,10 @@ class SettingsManager: ObservableObject {
         objectWillChange.send()
     }
 
+    // MARK: - Notifications
+
+    @AppStorage("soundsMuted") var soundsMuted: Bool = false
+
     // MARK: - Display
 
     @AppStorage("refreshInterval") var refreshInterval: Double = 5.0

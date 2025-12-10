@@ -151,6 +151,7 @@ class NotificationManager: NSObject, ObservableObject, UNUserNotificationCenterD
     }
 
     private func playSound(_ sound: AlertSound) {
+        guard !SettingsManager.shared.soundsMuted else { return }
         guard let soundName = sound.systemSoundName else { return }
 
         if let soundURL = NSSound(named: NSSound.Name(soundName)) {
