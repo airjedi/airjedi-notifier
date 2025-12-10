@@ -4,6 +4,7 @@ import Combine
 @MainActor
 class AppState: ObservableObject {
     @Published var isConnecting = false
+    @Published private(set) var nearbyCount: Int = 0
 
     let aircraftService: AircraftService
     let providerManager: ProviderManager
@@ -17,9 +18,6 @@ class AppState: ObservableObject {
         aircraftService.aircraft
     }
 
-    var nearbyCount: Int {
-        aircraftService.aircraft.count
-    }
 
     var referenceLocation: Coordinate {
         settings.referenceLocation
@@ -51,6 +49,16 @@ class AppState: ObservableObject {
             .sink { [weak self] _ in
                 self?.objectWillChange.send()
                 self?.evaluateAlerts()
+            }
+            .store(in: &cancellables)
+
+        // Subscribe to aircraft changes to update count (uses $aircraft for post-change value)
+        aircraftService.$aircraft
+            .map { $0.count }
+            .removeDuplicates()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] count in
+                self?.nearbyCount = count
             }
             .store(in: &cancellables)
 
