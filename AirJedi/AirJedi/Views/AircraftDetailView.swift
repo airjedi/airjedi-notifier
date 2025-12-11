@@ -14,108 +14,119 @@ struct AircraftDetailView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // Header: Callsign/ICAO and operator
-            HStack {
-                Image(systemName: "airplane")
-                    .font(.system(size: 14))
-                Text(aircraft.callsign ?? aircraft.icaoHex)
-                    .font(.system(size: 14, weight: .bold))
-                Spacer()
+        HStack(alignment: .top, spacing: 12) {
+            // Mini-map (only if position exists)
+            if let position = aircraft.position {
+                AircraftMiniMapView(
+                    position: position,
+                    headingDegrees: aircraft.headingDegrees
+                )
             }
 
-            if let opName = aircraft.operatorName {
-                Text(opName)
-                    .font(.system(size: 12))
-                    .foregroundColor(.secondary)
-            }
-
-            Divider()
-
-            // Details grid
-            Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 4) {
-                if let typeCode = aircraft.aircraftTypeCode {
-                    GridRow {
-                        Text("Type:")
-                            .foregroundColor(.secondary)
-                        Text(typeCode)
-                    }
+            // Details panel
+            VStack(alignment: .leading, spacing: 8) {
+                // Header: Callsign/ICAO and operator
+                HStack {
+                    Image(systemName: "airplane")
+                        .font(.system(size: 14))
+                    Text(aircraft.callsign ?? aircraft.icaoHex)
+                        .font(.system(size: 14, weight: .bold))
+                    Spacer()
                 }
 
-                if let reg = aircraft.registration {
-                    GridRow {
-                        Text("Registration:")
-                            .foregroundColor(.secondary)
-                        Text(reg)
-                    }
-                }
-
-                GridRow {
-                    Text("ICAO:")
+                if let opName = aircraft.operatorName {
+                    Text(opName)
+                        .font(.system(size: 12))
                         .foregroundColor(.secondary)
-                    Text(aircraft.icaoHex)
                 }
 
-                if let alt = aircraft.altitudeFeet {
-                    GridRow {
-                        Text("Altitude:")
-                            .foregroundColor(.secondary)
-                        Text("\(alt.formatted()) ft")
-                    }
-                }
+                Divider()
 
-                if let speed = aircraft.speedKnots {
-                    GridRow {
-                        Text("Speed:")
-                            .foregroundColor(.secondary)
-                        Text("\(Int(speed)) kt")
+                // Details grid
+                Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 4) {
+                    if let typeCode = aircraft.aircraftTypeCode {
+                        GridRow {
+                            Text("Type:")
+                                .foregroundColor(.secondary)
+                            Text(typeCode)
+                        }
                     }
-                }
 
-                if let heading = aircraft.headingDegrees {
-                    GridRow {
-                        Text("Heading:")
-                            .foregroundColor(.secondary)
-                        Text(String(format: "%.0f°", heading))
+                    if let reg = aircraft.registration {
+                        GridRow {
+                            Text("Registration:")
+                                .foregroundColor(.secondary)
+                            Text(reg)
+                        }
                     }
-                }
 
-                if let vRate = aircraft.verticalRateFpm, vRate != 0 {
                     GridRow {
-                        Text("Vertical:")
+                        Text("ICAO:")
                             .foregroundColor(.secondary)
-                        Text("\(vRate > 0 ? "+" : "")\(Int(vRate)) fpm")
+                        Text(aircraft.icaoHex)
                     }
-                }
 
-                if let squawk = aircraft.squawk {
-                    GridRow {
-                        Text("Squawk:")
-                            .foregroundColor(.secondary)
-                        Text(squawk)
-                            .foregroundColor(isEmergencySquawk(squawk) ? .red : .primary)
+                    if let alt = aircraft.altitudeFeet {
+                        GridRow {
+                            Text("Altitude:")
+                                .foregroundColor(.secondary)
+                            Text("\(alt.formatted()) ft")
+                        }
                     }
-                }
 
-                if let distance = distanceText {
-                    GridRow {
-                        Text("Distance:")
-                            .foregroundColor(.secondary)
-                        Text(distance)
-                            .foregroundColor(.blue)
+                    if let speed = aircraft.speedKnots {
+                        GridRow {
+                            Text("Speed:")
+                                .foregroundColor(.secondary)
+                            Text("\(Int(speed)) kt")
+                        }
                     }
-                }
 
-                if let position = aircraft.position {
-                    GridRow {
-                        Text("Position:")
-                            .foregroundColor(.secondary)
-                        Text(String(format: "%.4f, %.4f", position.latitude, position.longitude))
-                            .font(.system(size: 10, design: .monospaced))
+                    if let heading = aircraft.headingDegrees {
+                        GridRow {
+                            Text("Heading:")
+                                .foregroundColor(.secondary)
+                            Text(String(format: "%.0f°", heading))
+                        }
+                    }
+
+                    if let vRate = aircraft.verticalRateFpm, vRate != 0 {
+                        GridRow {
+                            Text("Vertical:")
+                                .foregroundColor(.secondary)
+                            Text("\(vRate > 0 ? "+" : "")\(Int(vRate)) fpm")
+                        }
+                    }
+
+                    if let squawk = aircraft.squawk {
+                        GridRow {
+                            Text("Squawk:")
+                                .foregroundColor(.secondary)
+                            Text(squawk)
+                                .foregroundColor(isEmergencySquawk(squawk) ? .red : .primary)
+                        }
+                    }
+
+                    if let distance = distanceText {
+                        GridRow {
+                            Text("Distance:")
+                                .foregroundColor(.secondary)
+                            Text(distance)
+                                .foregroundColor(.blue)
+                        }
+                    }
+
+                    if let position = aircraft.position {
+                        GridRow {
+                            Text("Position:")
+                                .foregroundColor(.secondary)
+                            Text(String(format: "%.4f, %.4f", position.latitude, position.longitude))
+                                .font(.system(size: 10, design: .monospaced))
+                        }
                     }
                 }
+                .font(.system(size: 11))
             }
-            .font(.system(size: 11))
         }
         .padding(12)
         .frame(minWidth: 200)

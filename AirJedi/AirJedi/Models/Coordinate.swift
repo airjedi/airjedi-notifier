@@ -1,4 +1,5 @@
 import Foundation
+import CoreLocation
 
 struct Coordinate: Equatable, Codable {
     let latitude: Double
@@ -19,5 +20,10 @@ struct Coordinate: Equatable, Codable {
         let c = 2 * atan2(sqrt(a), sqrt(1 - a))
 
         return earthRadiusNm * c
+    }
+
+    /// Convert to CoreLocation coordinate for MapKit
+    var clLocationCoordinate: CLLocationCoordinate2D {
+        CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
     }
 }
