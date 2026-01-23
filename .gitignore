@@ -89,3 +89,6 @@ fastlane/test_output
 
 # Git worktrees
 .worktrees/
+
+# Claude Code local settings (personal preferences)
+.claude/*.local.md
