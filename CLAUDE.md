@@ -31,33 +31,36 @@ ADS-B Receivers → Providers → AircraftService → AppState → Views
 
 ### Key Components
 
-**AppState** (`AirJedi/AirJedi/App/AppState.swift`): Central coordinator that owns all services and forwards Combine `objectWillChange` events to trigger SwiftUI updates.
+**AppState** (`Sources/App/AppState.swift`): Central coordinator that owns all services and forwards Combine `objectWillChange` events to trigger SwiftUI updates.
 
-**Providers** (`AirJedi/AirJedi/Providers/`): Protocol-based ADS-B data sources implementing `ADSBProvider`:
+**Providers** (`Sources/Providers/`): Protocol-based ADS-B data sources implementing `ADSBProvider`:
 - `Dump1090Provider` - HTTP JSON polling (port 8080)
 - `SBSProvider` - TCP text stream (port 30003, uses CRLF line endings)
 - `BeastProvider` - TCP binary AVR frames (port 30005)
 
 All providers emit `AircraftUpdate` events via Combine publishers. `ProviderManager` coordinates multiple sources and subscribes `AircraftService` to their updates.
 
-**AircraftService** (`AirJedi/AirJedi/Services/AircraftService.swift`): Maintains aircraft cache keyed by ICAO hex, handles deduplication, staleness removal (60s default), and filtering by position/distance.
+**AircraftService** (`Sources/Services/AircraftService.swift`): Maintains aircraft cache keyed by ICAO hex, handles deduplication, staleness removal (60s default), and filtering by position/distance.
 
-**AlertEngine** (`AirJedi/AirJedi/Services/AlertEngine.swift`): Evaluates configurable rules (proximity, watchlist, squawk, aircraft type) with 5-minute cooldown per aircraft to prevent notification spam.
+**AlertEngine** (`Sources/Services/AlertEngine.swift`): Evaluates configurable rules (proximity, watchlist, squawk, aircraft type) with 5-minute cooldown per aircraft to prevent notification spam.
 
-**SettingsManager** (`AirJedi/AirJedi/App/SettingsManager.swift`): Singleton using `@AppStorage` for UserDefaults persistence. Stores source configs as JSON-encoded data.
+**SettingsManager** (`Sources/App/SettingsManager.swift`): Singleton using `@AppStorage` for UserDefaults persistence. Stores source configs as JSON-encoded data.
 
 ### Project Structure
 
 ```
-AirJedi/
-├── project.yml          # XcodeGen configuration (macOS 14.0+, Swift 5.9)
-└── AirJedi/
-    ├── AirJediApp.swift # Entry point with MenuBarExtra
-    ├── App/             # AppState, SettingsManager
-    ├── Models/          # Aircraft, Coordinate, SourceConfig, AlertModels
-    ├── Providers/       # ADSBProvider protocol + implementations
-    ├── Services/        # AircraftService, AlertEngine, NotificationManager
-    └── Views/           # MenuBarIcon, AircraftListView, Settings tabs
+airjedi-notifier/
+├── project.yml              # XcodeGen configuration (macOS 14.0+, Swift 5.9)
+├── Makefile                 # Build automation
+├── AirJedi.xcodeproj/       # Generated (gitignored)
+├── Sources/
+│   ├── App/                 # AirJediApp.swift, AppState, SettingsManager
+│   ├── Models/              # Aircraft, Coordinate, SourceConfig, AlertModels
+│   ├── Providers/           # ADSBProvider protocol + implementations
+│   ├── Services/            # AircraftService, AlertEngine, NotificationManager
+│   └── Views/               # MenuBarIcon, AircraftListView, Settings/
+└── Resources/
+    └── Info.plist           # App configuration
 ```
 
 ### Important Patterns

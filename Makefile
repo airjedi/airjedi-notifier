@@ -1,7 +1,7 @@
 # AirJedi Build Automation
 # Run `make help` for available targets
 
-PROJECT_DIR := $(shell pwd)/AirJedi
+PROJECT_DIR := $(shell pwd)
 PROJECT_NAME := AirJedi
 SCHEME := AirJedi
 XCODEPROJ := $(PROJECT_DIR)/$(PROJECT_NAME).xcodeproj
@@ -18,7 +18,7 @@ all: build
 # Generate Xcode project from project.yml
 generate:
 	@echo "Generating Xcode project..."
-	cd $(PROJECT_DIR) && xcodegen generate
+	xcodegen generate
 	@echo "✓ Project generated"
 
 # Build debug configuration
