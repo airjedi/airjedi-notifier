@@ -25,7 +25,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Create the popover with SwiftUI content
         popover = NSPopover()
         popover.contentSize = NSSize(width: 350, height: 400)
-        popover.behavior = .transient
+        popover.behavior = .semitransient
         popover.animates = true
         popover.contentViewController = NSHostingController(rootView: AircraftListView(appState: appState))
 

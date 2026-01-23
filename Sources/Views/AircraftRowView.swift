@@ -6,6 +6,8 @@ struct AircraftRowView: View {
     let highlightColor: Color?
 
     @State private var isHovering = false
+    @State private var showPopover = false
+    @State private var hoverTask: Task<Void, Never>?
 
     private var distanceText: String {
         guard let ref = referenceLocation,
@@ -73,11 +75,49 @@ struct AircraftRowView: View {
         .padding(.horizontal, 8)
         .background(isHovering ? Color.accentColor.opacity(0.1) : Color.clear)
         .cornerRadius(6)
+        .contentShape(Rectangle())
         .onHover { hovering in
             isHovering = hovering
+            hoverTask?.cancel()
+
+            if hovering {
+                // Show popover immediately on hover
+                showPopover = true
+            } else {
+                // Delay hiding popover by 1.5 seconds
+                hoverTask = Task {
+                    try? await Task.sleep(nanoseconds: 1_500_000_000)
+                    if !Task.isCancelled {
+                        showPopover = false
+                    }
+                }
+            }
         }
-        .popover(isPresented: $isHovering, arrowEdge: .trailing) {
+        .onTapGesture {
+            if aircraft.position != nil {
+                showPopover = false
+                MapWindowController.shared.openMapWindow(
+                    for: aircraft,
+                    referenceLocation: referenceLocation
+                )
+            }
+        }
+        .popover(isPresented: $showPopover, arrowEdge: .trailing) {
             AircraftDetailView(aircraft: aircraft, referenceLocation: referenceLocation)
+                .onHover { hoveringPopover in
+                    if hoveringPopover {
+                        // Cancel close if hovering over popover
+                        hoverTask?.cancel()
+                    } else {
+                        // Start close timer when leaving popover
+                        hoverTask = Task {
+                            try? await Task.sleep(nanoseconds: 1_500_000_000)
+                            if !Task.isCancelled {
+                                showPopover = false
+                            }
+                        }
+                    }
+                }
         }
     }
 }

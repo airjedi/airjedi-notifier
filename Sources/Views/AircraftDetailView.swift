@@ -15,11 +15,11 @@ struct AircraftDetailView: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            // Mini-map (only if position exists)
-            if let position = aircraft.position {
+            // Mini-map (only if position exists) - click to open full map
+            if aircraft.position != nil {
                 AircraftMiniMapView(
-                    position: position,
-                    headingDegrees: aircraft.headingDegrees
+                    aircraft: aircraft,
+                    referenceLocation: referenceLocation
                 )
             }
 
