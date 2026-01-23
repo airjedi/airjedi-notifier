@@ -1,19 +1,50 @@
 import Foundation
 import Combine
+import SwiftUI
 
 @MainActor
 class AlertEngine: ObservableObject {
     @Published private(set) var recentAlerts: [Alert] = []
     @Published var alertRules: [AlertRuleConfig] = []
+    @Published private(set) var activeAlertColors: [String: Color] = [:]  // icaoHex -> highlight color
 
     private let settings = SettingsManager.shared
     private var cooldowns: [String: Date] = [:]  // icaoHex -> lastAlerted
     private var previousAircraftState: [String: Aircraft] = [:]
+    private var rulesObserver: NSObjectProtocol?
 
     var cooldownSeconds: TimeInterval = 300  // 5 minutes
 
     init() {
         loadRules()
+        observeRulesChanges()
+    }
+
+    deinit {
+        if let observer = rulesObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+    }
+
+    private func observeRulesChanges() {
+        rulesObserver = NotificationCenter.default.addObserver(
+            forName: UserDefaults.didChangeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.reloadRulesIfNeeded()
+        }
+    }
+
+    private func reloadRulesIfNeeded() {
+        guard let data = UserDefaults.standard.data(forKey: "alertRules"),
+              let rules = try? JSONDecoder().decode([AlertRuleConfig].self, from: data) else {
+            return
+        }
+        // Only update if rules have actually changed
+        if rules != alertRules {
+            alertRules = rules
+        }
     }
 
     // MARK: - Rule Management
@@ -85,6 +116,111 @@ class AlertEngine: ObservableObject {
         }
 
         return newAlerts
+    }
+
+    /// Updates the active alert colors for all aircraft based on current rule matching.
+    /// Called on every aircraft update to maintain highlight state.
+    func updateActiveAlerts(aircraft: [Aircraft]) {
+        let enabledRules = alertRules.filter { $0.isEnabled && $0.highlightColor != nil }
+        guard !enabledRules.isEmpty else {
+            if !activeAlertColors.isEmpty {
+                activeAlertColors.removeAll()
+            }
+            return
+        }
+
+        var newColors: [String: Color] = [:]
+        let referenceLocation = settings.referenceLocation
+
+        for ac in aircraft {
+            // Check each rule - last matching rule wins
+            for rule in enabledRules {
+                if matchesRuleCondition(rule, aircraft: ac, referenceLocation: referenceLocation),
+                   let highlightColor = rule.highlightColor {
+                    newColors[ac.icaoHex] = highlightColor.color
+                }
+            }
+        }
+
+        // Only update if changed to avoid unnecessary SwiftUI updates
+        if newColors != activeAlertColors {
+            activeAlertColors = newColors
+        }
+    }
+
+    /// Checks if an aircraft currently matches a rule's conditions (without first-detection logic)
+    private func matchesRuleCondition(_ rule: AlertRuleConfig, aircraft: Aircraft, referenceLocation: Coordinate) -> Bool {
+        switch rule.type {
+        case .proximity:
+            return matchesProximityCondition(rule, aircraft: aircraft, referenceLocation: referenceLocation)
+        case .watchlist:
+            return matchesWatchlistCondition(rule, aircraft: aircraft)
+        case .squawk:
+            return matchesSquawkCondition(rule, aircraft: aircraft)
+        case .aircraftType:
+            return matchesAircraftTypeCondition(rule, aircraft: aircraft)
+        }
+    }
+
+    private func matchesProximityCondition(_ rule: AlertRuleConfig, aircraft: Aircraft, referenceLocation: Coordinate) -> Bool {
+        guard let maxDistance = rule.maxDistanceNm,
+              let distance = aircraft.distance(from: referenceLocation),
+              distance <= maxDistance else {
+            return false
+        }
+
+        if let maxAlt = rule.maxAltitudeFeet,
+           let alt = aircraft.altitudeFeet,
+           alt > maxAlt {
+            return false
+        }
+
+        if let minAlt = rule.minAltitudeFeet,
+           let alt = aircraft.altitudeFeet,
+           alt < minAlt {
+            return false
+        }
+
+        return true
+    }
+
+    private func matchesWatchlistCondition(_ rule: AlertRuleConfig, aircraft: Aircraft) -> Bool {
+        if let callsigns = rule.watchCallsigns,
+           let callsign = aircraft.callsign,
+           callsigns.contains(where: { callsign.uppercased().contains($0.uppercased()) }) {
+            return true
+        }
+
+        if let registrations = rule.watchRegistrations,
+           let reg = aircraft.registration,
+           registrations.contains(where: { reg.uppercased() == $0.uppercased() }) {
+            return true
+        }
+
+        if let icaos = rule.watchIcaoHex,
+           icaos.contains(where: { aircraft.icaoHex.uppercased() == $0.uppercased() }) {
+            return true
+        }
+
+        return false
+    }
+
+    private func matchesSquawkCondition(_ rule: AlertRuleConfig, aircraft: Aircraft) -> Bool {
+        guard let codes = rule.squawkCodes,
+              let squawk = aircraft.squawk,
+              codes.contains(squawk) else {
+            return false
+        }
+        return true
+    }
+
+    private func matchesAircraftTypeCondition(_ rule: AlertRuleConfig, aircraft: Aircraft) -> Bool {
+        if let typeCodes = rule.typeCodes,
+           let typeCode = aircraft.aircraftTypeCode,
+           typeCodes.contains(where: { typeCode.uppercased().contains($0.uppercased()) }) {
+            return true
+        }
+        return false
     }
 
     private func evaluateRule(_ rule: AlertRuleConfig, aircraft: Aircraft, referenceLocation: Coordinate) -> Alert? {

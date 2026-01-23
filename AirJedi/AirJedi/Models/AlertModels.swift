@@ -1,4 +1,36 @@
 import Foundation
+import SwiftUI
+
+// MARK: - Alert Color (Codable wrapper for SwiftUI Color)
+
+struct AlertColor: Codable, Equatable {
+    var red: Double
+    var green: Double
+    var blue: Double
+    var alpha: Double
+
+    var color: Color {
+        Color(red: red, green: green, blue: blue, opacity: alpha)
+    }
+
+    init(red: Double, green: Double, blue: Double, alpha: Double = 1.0) {
+        self.red = red
+        self.green = green
+        self.blue = blue
+        self.alpha = alpha
+    }
+
+    init(color: Color) {
+        // Convert Color to NSColor to extract components
+        let nsColor = NSColor(color).usingColorSpace(.deviceRGB) ?? NSColor.white
+        self.red = Double(nsColor.redComponent)
+        self.green = Double(nsColor.greenComponent)
+        self.blue = Double(nsColor.blueComponent)
+        self.alpha = Double(nsColor.alphaComponent)
+    }
+
+    static let defaultHighlight = AlertColor(red: 1.0, green: 0.6, blue: 0.0, alpha: 1.0) // Orange
+}
 
 // MARK: - Alert Priority
 
@@ -146,6 +178,9 @@ struct AlertRuleConfig: Identifiable, Codable, Equatable {
     var typeCategories: [String]?  // "military", "helicopter", etc.
     var typeCodes: [String]?  // "C17", "F16", etc.
 
+    // Highlight settings
+    var highlightColor: AlertColor?  // nil = no highlighting
+
     init(
         id: UUID = UUID(),
         name: String,
@@ -183,6 +218,7 @@ struct AlertRuleConfig: Identifiable, Codable, Equatable {
         squawkCodes = try container.decodeIfPresent([String].self, forKey: .squawkCodes)
         typeCategories = try container.decodeIfPresent([String].self, forKey: .typeCategories)
         typeCodes = try container.decodeIfPresent([String].self, forKey: .typeCodes)
+        highlightColor = try container.decodeIfPresent(AlertColor.self, forKey: .highlightColor)
     }
 
     static func defaultProximityRule() -> AlertRuleConfig {

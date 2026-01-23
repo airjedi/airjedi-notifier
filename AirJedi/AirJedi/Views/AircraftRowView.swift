@@ -3,6 +3,7 @@ import SwiftUI
 struct AircraftRowView: View {
     let aircraft: Aircraft
     let referenceLocation: Coordinate?
+    let highlightColor: Color?
 
     @State private var isHovering = false
 
@@ -36,6 +37,7 @@ struct AircraftRowView: View {
                     .font(.system(size: 10))
                 Text(aircraft.callsign ?? aircraft.icaoHex)
                     .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(highlightColor ?? .primary)
 
                 if let typeCode = aircraft.aircraftTypeCode {
                     Text(typeCode)
@@ -98,7 +100,8 @@ struct AircraftRowView: View {
 
     AircraftRowView(
         aircraft: aircraft,
-        referenceLocation: Coordinate(latitude: 37.7749, longitude: -122.4194)
+        referenceLocation: Coordinate(latitude: 37.7749, longitude: -122.4194),
+        highlightColor: nil
     )
     .frame(width: 280)
 }

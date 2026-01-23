@@ -64,6 +64,14 @@ class AppState {
             }
             .store(in: &cancellables)
 
+        // Re-evaluate alert colors when rules change
+        alertEngine.$alertRules
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.refreshAlertColors()
+            }
+            .store(in: &cancellables)
+
         // Request notification permission
         Task {
             await notificationManager.requestPermission()
@@ -91,8 +99,18 @@ class AppState {
         isConnecting = false
     }
 
+    private func refreshAlertColors() {
+        alertEngine.updateActiveAlerts(aircraft: aircraftService.aircraft)
+    }
+
     private func evaluateAlerts() {
-        let newAlerts = alertEngine.evaluate(aircraft: aircraftService.aircraft)
+        let currentAircraft = aircraftService.aircraft
+
+        // Update highlight colors for matching alerts
+        alertEngine.updateActiveAlerts(aircraft: currentAircraft)
+
+        // Evaluate for notifications
+        let newAlerts = alertEngine.evaluate(aircraft: currentAircraft)
         if !newAlerts.isEmpty {
             Task {
                 await notificationManager.deliverMultiple(newAlerts)

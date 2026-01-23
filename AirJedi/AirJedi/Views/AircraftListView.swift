@@ -155,7 +155,8 @@ struct AircraftListView: View {
                 ForEach(appState.aircraft) { aircraft in
                     AircraftRowView(
                         aircraft: aircraft,
-                        referenceLocation: appState.referenceLocation
+                        referenceLocation: appState.referenceLocation,
+                        highlightColor: appState.alertEngine.activeAlertColors[aircraft.icaoHex]
                     )
 
                     if aircraft.id != appState.aircraft.last?.id {

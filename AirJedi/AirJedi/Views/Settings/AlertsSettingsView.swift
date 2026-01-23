@@ -115,26 +115,35 @@ struct AlertRuleDetailView: View {
     }
 
     var body: some View {
-        Form {
-            Section("General") {
-                TextField("Name", text: $editedRule.name)
-                Toggle("Enabled", isOn: $editedRule.isEnabled)
-                Picker("Priority", selection: $editedRule.priority) {
-                    ForEach(AlertPriority.allCases) { priority in
-                        Text(priority.displayName).tag(priority)
+        ScrollView {
+            Form {
+                Section("General") {
+                    TextField("Name", text: $editedRule.name)
+                    Toggle("Enabled", isOn: $editedRule.isEnabled)
+                    Picker("Priority", selection: $editedRule.priority) {
+                        ForEach(AlertPriority.allCases) { priority in
+                            Text(priority.displayName).tag(priority)
+                        }
                     }
-                }
-                Picker("Sound", selection: $editedRule.sound) {
-                    ForEach(AlertSound.allCases) { sound in
-                        Text(sound.displayName).tag(sound)
+                    Picker("Sound", selection: $editedRule.sound) {
+                        ForEach(AlertSound.allCases) { sound in
+                            Text(sound.displayName).tag(sound)
+                        }
                     }
+                    Toggle("Send Desktop Notification", isOn: $editedRule.sendNotification)
                 }
-                Toggle("Send Desktop Notification", isOn: $editedRule.sendNotification)
-            }
 
-            ruleSpecificSettings
+                Section("Highlighting") {
+                    Toggle("Highlight in List", isOn: hasHighlightBinding)
+                    if editedRule.highlightColor != nil {
+                        ColorPicker("Highlight Color", selection: highlightColorBinding, supportsOpacity: false)
+                    }
+                }
+
+                ruleSpecificSettings
+            }
+            .formStyle(.grouped)
         }
-        .formStyle(.grouped)
         .onChange(of: editedRule) { newValue in
             alertEngine.updateRule(newValue)
         }
@@ -210,6 +219,28 @@ struct AlertRuleDetailView: View {
             set: { newValue in
                 let items = newValue.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
                 editedRule.typeCodes = items.isEmpty ? nil : items
+            }
+        )
+    }
+
+    private var hasHighlightBinding: Binding<Bool> {
+        Binding(
+            get: { editedRule.highlightColor != nil },
+            set: { newValue in
+                if newValue {
+                    editedRule.highlightColor = .defaultHighlight
+                } else {
+                    editedRule.highlightColor = nil
+                }
+            }
+        )
+    }
+
+    private var highlightColorBinding: Binding<Color> {
+        Binding(
+            get: { editedRule.highlightColor?.color ?? AlertColor.defaultHighlight.color },
+            set: { newValue in
+                editedRule.highlightColor = AlertColor(color: newValue)
             }
         )
     }
