@@ -81,5 +81,7 @@ class SettingsManager: ObservableObject {
 
     // MARK: - Init
 
-    private init() {}
+    /// Internal init allows tests to create instances for dependency injection.
+    /// Production code should use `SettingsManager.shared`.
+    init() {}
 }

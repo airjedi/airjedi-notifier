@@ -5,14 +5,17 @@ import Combine
 class ProviderManager: ObservableObject {
     @Published private(set) var providers: [any ADSBProvider] = []
     @Published private(set) var combinedStatus: ProviderStatus = .disconnected
+    @Published private(set) var totalMessageRate: Double = 0
 
-    private let settings = SettingsManager.shared
+    private let settings: SettingsManager
     private let aircraftService: AircraftService
     private var cancellables = Set<AnyCancellable>()
     private var statusCancellables = Set<AnyCancellable>()
+    private var rateCancellables = Set<AnyCancellable>()
 
-    init(aircraftService: AircraftService) {
+    init(aircraftService: AircraftService, settings: SettingsManager = .shared) {
         self.aircraftService = aircraftService
+        self.settings = settings
 
         // Observe settings changes
         settings.objectWillChange
@@ -67,6 +70,12 @@ class ProviderManager: ObservableObject {
         // Add new providers
         for config in enabledConfigs where !existingIds.contains(config.id) {
             let provider = ProviderFactory.createProvider(for: config)
+
+            // Configure Beast providers with reference location for CPR decoding
+            if let beastProvider = provider as? BeastProvider {
+                beastProvider.configure(referenceLocation: settings.referenceLocation)
+            }
+
             providers.append(provider)
             subscribeToProvider(provider)
         }
@@ -85,6 +94,18 @@ class ProviderManager: ObservableObject {
                 self?.updateCombinedStatus()
             }
             .store(in: &statusCancellables)
+
+        // Subscribe to message rate updates
+        provider.messageRatePublisher
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.updateTotalMessageRate()
+            }
+            .store(in: &rateCancellables)
+    }
+
+    private func updateTotalMessageRate() {
+        totalMessageRate = providers.reduce(0) { $0 + $1.messageRate }
     }
 
     // MARK: - Combined Status

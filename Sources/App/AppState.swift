@@ -10,13 +10,14 @@ class AppState {
     var nearbyCount: Int = 0
     var connectionStatus: ProviderStatus = .disconnected
     var hasRecentAlert: Bool = false
+    var messageRate: Double = 0
 
     let aircraftService: AircraftService
     let providerManager: ProviderManager
     let alertEngine: AlertEngine
     let notificationManager: NotificationManager
 
-    private let settings = SettingsManager.shared
+    private let settings: SettingsManager
     @ObservationIgnored private var cancellables = Set<AnyCancellable>()
 
     var aircraft: [Aircraft] {
@@ -31,10 +32,11 @@ class AppState {
         alertEngine.recentAlerts
     }
 
-    init() {
-        self.aircraftService = AircraftService()
-        self.providerManager = ProviderManager(aircraftService: aircraftService)
-        self.alertEngine = AlertEngine()
+    init(settings: SettingsManager = .shared) {
+        self.settings = settings
+        self.aircraftService = AircraftService(settings: settings)
+        self.providerManager = ProviderManager(aircraftService: aircraftService, settings: settings)
+        self.alertEngine = AlertEngine(settings: settings)
         self.notificationManager = NotificationManager.shared
 
         // Sync stored properties from services for menu bar updates
@@ -50,6 +52,13 @@ class AppState {
             .receive(on: RunLoop.main)
             .sink { [weak self] status in
                 self?.connectionStatus = status
+            }
+            .store(in: &cancellables)
+
+        providerManager.$totalMessageRate
+            .receive(on: RunLoop.main)
+            .sink { [weak self] rate in
+                self?.messageRate = rate
             }
             .store(in: &cancellables)
 

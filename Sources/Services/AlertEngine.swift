@@ -8,14 +8,15 @@ class AlertEngine: ObservableObject {
     @Published var alertRules: [AlertRuleConfig] = []
     @Published private(set) var activeAlertColors: [String: Color] = [:]  // icaoHex -> highlight color
 
-    private let settings = SettingsManager.shared
+    private let settings: SettingsManager
     private var cooldowns: [String: Date] = [:]  // icaoHex -> lastAlerted
     private var previousAircraftState: [String: Aircraft] = [:]
     private var rulesObserver: NSObjectProtocol?
 
     var cooldownSeconds: TimeInterval = 300  // 5 minutes
 
-    init() {
+    init(settings: SettingsManager = .shared) {
+        self.settings = settings
         loadRules()
         observeRulesChanges()
     }

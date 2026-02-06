@@ -10,9 +10,10 @@ class AircraftService: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var staleTimer: Timer?
 
-    private let settings = SettingsManager.shared
+    private let settings: SettingsManager
 
-    init() {
+    init(settings: SettingsManager = .shared) {
+        self.settings = settings
         startStaleTimer()
     }
 
