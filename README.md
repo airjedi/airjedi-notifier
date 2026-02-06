@@ -6,6 +6,12 @@ A lightweight macOS menu bar app for tracking nearby aircraft using ADS-B receiv
 ![Swift](https://img.shields.io/badge/Swift-5.9-orange)
 ![License](https://img.shields.io/badge/license-Apache%202.0-blue)
 
+<p align="center">
+  <img src="docs/images/Airjedi1.png" alt="AirJedi menu bar showing aircraft list" width="280">
+  &nbsp;&nbsp;&nbsp;
+  <img src="docs/images/AirJedi2.png" alt="AirJedi with detail popover and mini-map" width="380">
+</p>
+
 ## Features
 
 - **Menu Bar Integration** — Lives in your menu bar, always accessible without cluttering your Dock
