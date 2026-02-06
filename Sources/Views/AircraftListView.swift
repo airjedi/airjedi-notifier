@@ -179,6 +179,17 @@ struct AircraftListView: View {
 
             Spacer()
 
+            // Message rate display
+            HStack(spacing: 3) {
+                Image(systemName: "antenna.radiowaves.left.and.right")
+                    .font(.system(size: 8))
+                Text("\(Int(appState.messageRate)) msg/s")
+                    .font(.system(size: 10))
+            }
+            .foregroundColor(.secondary)
+
+            Spacer()
+
             if let lastUpdate = appState.aircraftService.lastUpdate {
                 Text("Updated \(lastUpdate, style: .relative) ago")
                     .font(.system(size: 10))

@@ -48,6 +48,10 @@ protocol ADSBProvider: AnyObject, Identifiable {
     var statusPublisher: AnyPublisher<ProviderStatus, Never> { get }
     var aircraftPublisher: AnyPublisher<AircraftUpdate, Never> { get }
 
+    /// Current message rate in messages per second
+    var messageRate: Double { get }
+    var messageRatePublisher: AnyPublisher<Double, Never> { get }
+
     func connect() async
     func disconnect() async
 }

@@ -6,9 +6,14 @@ class SBSProvider: ADSBProvider, ObservableObject {
     let config: SourceConfig
 
     @Published private(set) var status: ProviderStatus = .disconnected
+    @Published private(set) var messageRate: Double = 0
 
     var statusPublisher: AnyPublisher<ProviderStatus, Never> {
         $status.eraseToAnyPublisher()
+    }
+
+    var messageRatePublisher: AnyPublisher<Double, Never> {
+        $messageRate.eraseToAnyPublisher()
     }
 
     private let aircraftSubject = PassthroughSubject<AircraftUpdate, Never>()
@@ -21,6 +26,10 @@ class SBSProvider: ADSBProvider, ObservableObject {
     private var aircraftCache: [String: Aircraft] = [:]
     private var cancellables = Set<AnyCancellable>()
 
+    /// Message counting for rate calculation
+    private var messageCount: Int = 0
+    private var rateTimer: Timer?
+
     init(config: SourceConfig) {
         self.id = config.id
         self.config = config
@@ -30,6 +39,8 @@ class SBSProvider: ADSBProvider, ObservableObject {
         await MainActor.run {
             status = .connecting
         }
+
+        startRateTimer()
 
         tcpConnection = TCPConnection(host: config.host, port: config.port)
 
@@ -46,6 +57,7 @@ class SBSProvider: ADSBProvider, ObservableObject {
     }
 
     func disconnect() async {
+        stopRateTimer()
         tcpConnection?.disconnect()
         tcpConnection = nil
         cancellables.removeAll()
@@ -54,6 +66,31 @@ class SBSProvider: ADSBProvider, ObservableObject {
         await MainActor.run {
             status = .disconnected
             aircraftCache.removeAll()
+        }
+    }
+
+    private func startRateTimer() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.rateTimer?.invalidate()
+            self.messageCount = 0
+            self.messageRate = 0
+
+            self.rateTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+                guard let self = self else { return }
+                self.messageRate = Double(self.messageCount)
+                self.messageCount = 0
+            }
+        }
+    }
+
+    private func stopRateTimer() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.rateTimer?.invalidate()
+            self.rateTimer = nil
+            self.messageRate = 0
+            self.messageCount = 0
         }
     }
 
@@ -96,6 +133,8 @@ class SBSProvider: ADSBProvider, ObservableObject {
     }
 
     private func parseSBSMessage(_ line: String) {
+        messageCount += 1
+
         let fields = line.components(separatedBy: ",")
         guard fields.count >= 11 else { return }
         guard fields[0] == "MSG" else { return }

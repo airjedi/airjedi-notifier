@@ -71,6 +71,7 @@ struct AircraftRowView: View {
                     .foregroundColor(.secondary)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 4)
         .padding(.horizontal, 8)
         .background(isHovering ? Color.accentColor.opacity(0.1) : Color.clear)
@@ -96,7 +97,7 @@ struct AircraftRowView: View {
         .onTapGesture {
             if aircraft.position != nil {
                 showPopover = false
-                MapWindowController.shared.openMapWindow(
+                MapWindowManager.shared.openMapWindow(
                     for: aircraft,
                     referenceLocation: referenceLocation
                 )

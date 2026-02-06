@@ -21,6 +21,27 @@ struct AircraftDetailView: View {
                     aircraft: aircraft,
                     referenceLocation: referenceLocation
                 )
+                .overlay(alignment: .bottomTrailing) {
+                    Image(systemName: "arrow.up.left.and.arrow.down.right")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.white)
+                        .padding(4)
+                        .background(Color.black.opacity(0.5))
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                        .padding(4)
+                }
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    MapWindowManager.shared.openMapWindow(for: aircraft, referenceLocation: referenceLocation)
+                }
+                .onHover { hovering in
+                    if hovering {
+                        NSCursor.pointingHand.push()
+                    } else {
+                        NSCursor.pop()
+                    }
+                }
+                .help("Click to open larger map")
             }
 
             // Details panel

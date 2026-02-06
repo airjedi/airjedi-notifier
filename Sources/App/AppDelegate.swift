@@ -8,10 +8,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var popover: NSPopover!
     private var appState: AppState!
     private var updateTimer: Timer?
+    private var popoverCloseTimer: Timer?
+    private let popoverTimeout: TimeInterval = 5.0
+    private var wakeObserver: NSObjectProtocol?
+    private var sessionActiveObserver: NSObjectProtocol?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Create the app state
         appState = AppState()
+
+        // Configure the map window manager with aircraft service for live updates
+        MapWindowManager.shared.configure(aircraftService: appState.aircraftService)
 
         // Create the status item
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -31,6 +38,39 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Start timer to poll for updates (reliable approach)
         startUpdateTimer()
+
+        // Subscribe to wake and session notifications to reconnect providers
+        setupWakeNotifications()
+    }
+
+    private func setupWakeNotifications() {
+        let workspaceCenter = NSWorkspace.shared.notificationCenter
+
+        // Reconnect when computer wakes from sleep
+        wakeObserver = workspaceCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.handleSystemWake()
+        }
+
+        // Reconnect when session becomes active (screen unlock)
+        sessionActiveObserver = workspaceCenter.addObserver(
+            forName: NSWorkspace.sessionDidBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.handleSystemWake()
+        }
+    }
+
+    private func handleSystemWake() {
+        // Delay reconnection to allow network to stabilize after wake
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(2))
+            await appState.restartProviders()
+        }
     }
 
     private func startUpdateTimer() {
@@ -91,10 +131,41 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         guard let button = statusItem.button else { return }
 
         if popover.isShown {
-            popover.performClose(nil)
+            closePopover()
         } else {
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
             popover.contentViewController?.view.window?.makeKey()
+            startPopoverCloseTimer()
         }
+    }
+
+    private func startPopoverCloseTimer() {
+        popoverCloseTimer?.invalidate()
+        popoverCloseTimer = Timer.scheduledTimer(withTimeInterval: popoverTimeout, repeats: false) { [weak self] _ in
+            Task { @MainActor in
+                self?.handlePopoverTimeout()
+            }
+        }
+    }
+
+    private func handlePopoverTimeout() {
+        // Keep popover open if mouse is hovering over it
+        if isMouseInsidePopover() {
+            startPopoverCloseTimer()
+        } else {
+            closePopover()
+        }
+    }
+
+    private func isMouseInsidePopover() -> Bool {
+        guard let window = popover.contentViewController?.view.window else { return false }
+        let mouseLocation = NSEvent.mouseLocation
+        return window.frame.contains(mouseLocation)
+    }
+
+    private func closePopover() {
+        popoverCloseTimer?.invalidate()
+        popoverCloseTimer = nil
+        popover.performClose(nil)
     }
 }

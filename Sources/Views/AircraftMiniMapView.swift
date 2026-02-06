@@ -42,7 +42,7 @@ struct AircraftMiniMapView: View {
                 .frame(width: 150, height: 150)
                 .contentShape(Rectangle())
                 .onTapGesture {
-                    MapWindowController.shared.openMapWindow(
+                    MapWindowManager.shared.openMapWindow(
                         for: aircraft,
                         referenceLocation: referenceLocation
                     )

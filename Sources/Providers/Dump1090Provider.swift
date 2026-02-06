@@ -72,9 +72,14 @@ class Dump1090Provider: ADSBProvider, ObservableObject {
     let config: SourceConfig
 
     @Published private(set) var status: ProviderStatus = .disconnected
+    @Published private(set) var messageRate: Double = 0
 
     var statusPublisher: AnyPublisher<ProviderStatus, Never> {
         $status.eraseToAnyPublisher()
+    }
+
+    var messageRatePublisher: AnyPublisher<Double, Never> {
+        $messageRate.eraseToAnyPublisher()
     }
 
     private let aircraftSubject = PassthroughSubject<AircraftUpdate, Never>()
@@ -90,6 +95,10 @@ class Dump1090Provider: ADSBProvider, ObservableObject {
     private let baseRetryDelay: TimeInterval = 1.0
     private let maxRetryDelay: TimeInterval = 60.0
     private var consecutiveFailures = 0
+
+    /// Message counting for rate calculation
+    private var messageCount: Int = 0
+    private var rateTimer: Timer?
 
     init(config: SourceConfig) {
         self.id = config.id
@@ -111,6 +120,8 @@ class Dump1090Provider: ADSBProvider, ObservableObject {
             status = .connecting
         }
 
+        startRateTimer()
+
         pollingTask = Task { [weak self] in
             guard let self = self else { return }
             await self.pollLoop()
@@ -121,9 +132,35 @@ class Dump1090Provider: ADSBProvider, ObservableObject {
         isRunning = false
         pollingTask?.cancel()
         pollingTask = nil
+        stopRateTimer()
 
         await MainActor.run {
             status = .disconnected
+        }
+    }
+
+    private func startRateTimer() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.rateTimer?.invalidate()
+            self.messageCount = 0
+            self.messageRate = 0
+
+            self.rateTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+                guard let self = self else { return }
+                self.messageRate = Double(self.messageCount)
+                self.messageCount = 0
+            }
+        }
+    }
+
+    private func stopRateTimer() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.rateTimer?.invalidate()
+            self.rateTimer = nil
+            self.messageRate = 0
+            self.messageCount = 0
         }
     }
 
@@ -179,6 +216,9 @@ class Dump1090Provider: ADSBProvider, ObservableObject {
             let dump1090Response = try decoder.decode(Dump1090Response.self, from: data)
 
             let aircraft = dump1090Response.aircraft.compactMap { convertToAircraft($0) }
+
+            // Count each aircraft update as a message
+            messageCount += aircraft.count
 
             await MainActor.run {
                 status = .connected(aircraftCount: aircraft.count)
