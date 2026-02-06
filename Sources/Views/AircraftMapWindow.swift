@@ -154,6 +154,10 @@ struct AircraftMapWindow: View {
                 if let ref = referenceLocation, let ac = aircraft, let dist = ac.distance(from: ref) {
                     Badge(icon: "location", text: String(format: "%.1f nm", dist))
                 }
+
+                if let ac = aircraft {
+                    LastSeenBadge(lastSeen: ac.lastSeen)
+                }
             }
         }
         .padding(.horizontal, 16)
@@ -165,6 +169,7 @@ struct AircraftMapWindow: View {
 private struct Badge: View {
     let icon: String
     let text: String
+    var color: Color = .secondary
 
     var body: some View {
         HStack(spacing: 4) {
@@ -173,7 +178,22 @@ private struct Badge: View {
             Text(text)
                 .font(.system(size: 11, weight: .medium))
         }
-        .foregroundColor(.secondary)
+        .foregroundColor(color)
+    }
+}
+
+/// Badge that displays time since last seen with auto-updating
+private struct LastSeenBadge: View {
+    let lastSeen: Date
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 1.0)) { context in
+            Badge(
+                icon: "clock",
+                text: lastSeen.elapsedCompactText(now: context.date),
+                color: lastSeen.freshnessColor(now: context.date)
+            )
+        }
     }
 }
 

@@ -14,6 +14,12 @@ struct AircraftDetailView: View {
     }
 
     var body: some View {
+        TimelineView(.periodic(from: .now, by: 1.0)) { context in
+            detailContent(now: context.date)
+        }
+    }
+
+    private func detailContent(now: Date) -> some View {
         HStack(alignment: .top, spacing: 12) {
             // Mini-map (only if position exists) - click to open full map
             if aircraft.position != nil {
@@ -144,6 +150,13 @@ struct AircraftDetailView: View {
                             Text(String(format: "%.4f, %.4f", position.latitude, position.longitude))
                                 .font(.system(size: 10, design: .monospaced))
                         }
+                    }
+
+                    GridRow {
+                        Text("Last Seen:")
+                            .foregroundColor(.secondary)
+                        Text(aircraft.lastSeen.elapsedTextWithAgo(now: now))
+                            .foregroundColor(aircraft.lastSeen.freshnessColor(now: now))
                     }
                 }
                 .font(.system(size: 11))

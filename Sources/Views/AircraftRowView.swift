@@ -33,6 +33,12 @@ struct AircraftRowView: View {
     }
 
     var body: some View {
+        TimelineView(.periodic(from: .now, by: 1.0)) { context in
+            rowContent(now: context.date)
+        }
+    }
+
+    private func rowContent(now: Date) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             HStack {
                 Image(systemName: "airplane")
@@ -65,6 +71,10 @@ struct AircraftRowView: View {
                 }
 
                 Spacer()
+
+                Text(aircraft.lastSeen.elapsedCompactText(now: now))
+                    .font(.system(size: 10, weight: .medium, design: .monospaced))
+                    .foregroundColor(aircraft.lastSeen.freshnessColor(now: now))
 
                 Text("\(headingText) \(speedText)")
                     .font(.system(size: 10))

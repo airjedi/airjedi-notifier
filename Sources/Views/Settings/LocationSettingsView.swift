@@ -1,5 +1,4 @@
 import SwiftUI
-import CoreLocation
 
 struct LocationSettingsView: View {
     @ObservedObject var settings: SettingsManager
