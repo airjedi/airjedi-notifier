@@ -10,7 +10,7 @@ A lightweight macOS menu bar app for tracking nearby aircraft using ADS-B receiv
 
 - **Menu Bar Integration** — Lives in your menu bar, always accessible without cluttering your Dock
 - **Multiple ADS-B Sources** — Connect to dump1090, SBS (BaseStation), or Beast protocol receivers
-- **Real-time Updates** — See aircraft appear and update as they fly through your area
+- **Real-time Updates** — See aircraft appear and update as they fly through your area, with color-coded freshness indicators
 - **Configurable Alerts** — Get notified for proximity, specific squawk codes, watchlist aircraft, or aircraft types
 - **Highlight Colors** — Assign custom colors to alert rules for visual identification
 - **Mini-map View** — Quick visual overview of aircraft positions relative to your location
@@ -98,6 +98,7 @@ airjedi-notifier/
 │   ├── Models/        # Data models (Aircraft, Coordinate, etc.)
 │   ├── Providers/     # ADS-B protocol implementations
 │   ├── Services/      # Business logic (alerts, notifications)
+│   ├── Utilities/     # Shared helpers (time formatting, etc.)
 │   └── Views/         # SwiftUI views
 ├── Resources/
 │   └── Info.plist
