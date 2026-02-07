@@ -11,8 +11,7 @@ targets:
     platform: macOS
     sources:
       - Sources
-    resources:
-      - Resources
+      - Resources/Assets.xcassets
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.airjedi.notifier
