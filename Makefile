@@ -3,6 +3,7 @@
 
 PROJECT_DIR := $(shell pwd)
 PROJECT_NAME := AirJedi
+APP_NAME := AirJedi Alerts
 SCHEME := AirJedi
 XCODEPROJ := $(PROJECT_DIR)/$(PROJECT_NAME).xcodeproj
 
@@ -35,9 +36,9 @@ release: generate
 
 # Run the app (builds first if needed)
 run: build
-	@echo "Launching $(PROJECT_NAME)..."
+	@echo "Launching $(APP_NAME)..."
 	@if [ -n "$(BUILD_DIR)" ]; then \
-		open "$(BUILD_DIR)/Build/Products/Debug/$(PROJECT_NAME).app"; \
+		open "$(BUILD_DIR)/Build/Products/Debug/$(APP_NAME).app"; \
 	else \
 		echo "Error: Build directory not found. Run 'make build' first."; \
 		exit 1; \
@@ -55,10 +56,10 @@ clean:
 
 # Install to /Applications (release build)
 install: release
-	@echo "Installing $(PROJECT_NAME) to /Applications..."
+	@echo "Installing $(APP_NAME) to /Applications..."
 	@if [ -n "$(BUILD_DIR)" ]; then \
-		cp -R "$(BUILD_DIR)/Build/Products/Release/$(PROJECT_NAME).app" /Applications/; \
-		echo "✓ Installed to /Applications/$(PROJECT_NAME).app"; \
+		cp -R "$(BUILD_DIR)/Build/Products/Release/$(APP_NAME).app" /Applications/; \
+		echo "✓ Installed to /Applications/$(APP_NAME).app"; \
 	else \
 		echo "Error: Build directory not found."; \
 		exit 1; \
@@ -66,7 +67,7 @@ install: release
 
 # Show available targets
 help:
-	@echo "AirJedi Build System"
+	@echo "AirJedi Alerts Build System"
 	@echo ""
 	@echo "Usage: make [target]"
 	@echo ""
